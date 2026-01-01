@@ -1,4 +1,4 @@
-import type { FYData } from '../../types/fd';
+import type { FYData } from '../../../types/fd';
 
 interface FDTableProps {
   data: FYData[];

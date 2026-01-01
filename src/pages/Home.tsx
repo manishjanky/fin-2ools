@@ -23,7 +23,7 @@ export default function Home() {
         </section>
 
         {/* Features Grid */}
-        <section className="grid sm:grid-cols-1 md:grid-cols-3 gap-8 mb-16">
+        <section className="grid sm:grid-cols-1 md:grid-cols-2 gap-8 mb-16">
           <div className="cursor-pointer">
             <FeatureTile
               title="FD Projections"
@@ -39,7 +39,7 @@ export default function Home() {
               description="Explore mutual fund options, compare returns, and analyze your portfolio performance. Make informed investment decisions."
               icon="📈"
               gradient="from-blue-500 to-cyan-600"
-              onClick={() => navigate('/home')}
+              onClick={() => navigate('/mutual-funds')}
             />
           </div>
         </section>

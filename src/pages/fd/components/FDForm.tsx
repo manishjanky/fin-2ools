@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { FDInput } from '../../types/fd';
+import type { FDInput } from '../../../types/fd';
 
 interface FDFormProps {
   onCalculate: (input: FDInput) => void;
