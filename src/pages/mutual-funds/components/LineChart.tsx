@@ -75,7 +75,7 @@ export default function LineChart({ navData, timeframeLabel }: LineChartProps) {
 
     const options = {
         responsive: true,
-        maintainAspectRatio: true,
+        maintainAspectRatio: false,
         plugins: {
             legend: {
                 display: true,
@@ -150,8 +150,8 @@ export default function LineChart({ navData, timeframeLabel }: LineChartProps) {
     };
 
     return (
-        <div className="w-full">
-            <Line data={chartData} options={options} height={100} />
+        <div className="w-full position-relative h-[300px] md:h-[400px]">
+            <Line data={chartData} options={options} height={125} redraw={true} />
         </div>
     );
 }

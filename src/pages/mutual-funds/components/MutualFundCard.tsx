@@ -8,7 +8,7 @@ export default function MutualFundCard({ scheme }: MutualFundCardProps) {
     const navValue = scheme.nav ? parseFloat(scheme.nav).toFixed(2) : 'N/A';
 
     return (
-        <div className="bg-gradient-to-br from-blue-500/10 to-cyan-500/10 border border-blue-500/30 rounded-lg p-6 hover:border-blue-500/50 hover:shadow-lg transition transform hover:scale-105 h-full">
+        <div className="bg-gradient-to-br from-blue-500/10 to-cyan-500/10 border border-blue-500/30 rounded-lg p-4 hover:border-blue-500/50 hover:shadow-lg transition transform hover:scale-105 h-full">
             <div className="flex flex-col h-full justify-between">
                 {/* Header: Scheme Name + NAV */}
                 <div className="mb-1">
@@ -26,12 +26,10 @@ export default function MutualFundCard({ scheme }: MutualFundCardProps) {
                         <div className="flex flex-col items-end sm:mt-2 lg:mt-0">
                             <span className="text-2xl font-bold text-cyan-300">₹{navValue}</span>
                             {scheme.date && (
-                                <p className="text-blue-400 text-xs mt-1">As of {scheme.date}</p>
+                                <p className="text-blue-400 text-xs mt-1 font-bold">As of {scheme.date}</p>
                             )}
                         </div>
                     </div>
-
-
                 </div>
             </div>
         </div>

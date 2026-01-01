@@ -5,6 +5,7 @@ import { fetchSchemeDetails, fetchSchemeHistory } from './utils/mutualFundsServi
 import Header from '../../components/common/Header';
 import ReturnsCalculator from './components/ReturnsCalculator';
 import moment from 'moment';
+import Accordion from '../../components/common/Accordion';
 
 function BackToMutualFundsButton({ navigate }: { navigate: ReturnType<typeof useNavigate> }) {
     return (
@@ -134,57 +135,50 @@ export default function SchemeDetails() {
                 )}
 
                 {/* Additional Info */}
-                {(scheme.isinGrowth || scheme.isinDivReinvestment) && (
-                    <section className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 border border-purple-500/30 rounded-lg p-6">
-                        <h3 className="text-xl font-bold text-white mb-4">ISIN Details</h3>
-                        <div className="grid md:grid-cols-2 gap-6">
-                            {scheme.schemeCategory && (
-                                <div>
-                                    <p className="text-purple-300 text-sm mb-2">Category</p>
-                                    <p className="text-white font-mono bg-slate-900/50 p-3 rounded">
-                                        {scheme.schemeCategory}
-                                    </p>
-                                </div>
-                            )}
+                <Accordion title="Additional Information" isOpen={true}>
+                    {(scheme.isinGrowth || scheme.isinDivReinvestment) && (
+                        <section className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 border border-purple-500/30 rounded-lg p-6">
+                            <h3 className="text-xl font-bold text-white mb-4">ISIN Details</h3>
+                            <div className="grid md:grid-cols-2 gap-6">
+                                {scheme.schemeCategory && (
+                                    <div>
+                                        <p className="text-purple-300 text-sm mb-2">Category</p>
+                                        <p className="text-white font-mono bg-slate-900/50 p-3 rounded">
+                                            {scheme.schemeCategory}
+                                        </p>
+                                    </div>
+                                )}
 
-                            {scheme.schemeType && (
-                                <div>
-                                    <p className="text-purple-300 text-sm mb-2">Type</p>
-                                    <p className="text-white font-mono bg-slate-900/50 p-3 rounded">
-                                        {scheme.schemeType}
-                                    </p>
-                                </div>
-                            )}
-                            {scheme.isinGrowth && (
-                                <div>
-                                    <p className="text-purple-300 text-sm mb-2">Growth ISIN</p>
-                                    <p className="text-white font-mono bg-slate-900/50 p-3 rounded">
-                                        {scheme.isinGrowth}
-                                    </p>
-                                </div>
-                            )}
-                            {scheme.isinDivReinvestment && (
-                                <div>
-                                    <p className="text-purple-300 text-sm mb-2">Dividend Reinvestment ISIN</p>
-                                    <p className="text-white font-mono bg-slate-900/50 p-3 rounded">
-                                        {scheme.isinDivReinvestment}
-                                    </p>
-                                </div>
-                            )}
+                                {scheme.schemeType && (
+                                    <div>
+                                        <p className="text-purple-300 text-sm mb-2">Type</p>
+                                        <p className="text-white font-mono bg-slate-900/50 p-3 rounded">
+                                            {scheme.schemeType}
+                                        </p>
+                                    </div>
+                                )}
+                                {scheme.isinGrowth && (
+                                    <div>
+                                        <p className="text-purple-300 text-sm mb-2">Growth ISIN</p>
+                                        <p className="text-white font-mono bg-slate-900/50 p-3 rounded">
+                                            {scheme.isinGrowth}
+                                        </p>
+                                    </div>
+                                )}
+                                {scheme.isinDivReinvestment && (
+                                    <div>
+                                        <p className="text-purple-300 text-sm mb-2">Dividend Reinvestment ISIN</p>
+                                        <p className="text-white font-mono bg-slate-900/50 p-3 rounded">
+                                            {scheme.isinDivReinvestment}
+                                        </p>
+                                    </div>
+                                )}
 
-                        </div>
-                    </section>
-                )}
+                            </div>
+                        </section>
+                    )}
+                </Accordion>
             </main>
-
-            {/* Footer */}
-            <footer className="border-t border-purple-500/30 mt-20 py-8 bg-slate-900/50">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="text-center text-purple-300 text-sm">
-                        <p>&copy; 2026 FinTools. All rights reserved.</p>
-                    </div>
-                </div>
-            </footer>
         </div>
     );
 }

@@ -6,7 +6,7 @@ interface ChartStatisticsDisplayProps {
     navData: NAVData[];
 }
 
-export default function ChartStatisticsDisplay({ navData }: ChartStatisticsDisplayProps) {
+export default function NavStatisticsDisplay({ navData }: ChartStatisticsDisplayProps) {
     const stats = useMemo(() => {
         if (!navData || navData.length === 0) return null;
 

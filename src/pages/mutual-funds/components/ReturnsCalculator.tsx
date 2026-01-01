@@ -1,9 +1,10 @@
 import { useState, useMemo } from 'react';
 import type { NAVData, ReturnsMetrics } from '../../../types/mutual-funds';
+import Accordion from '../../../components/common/Accordion';
 import ReturnsSummary from './ReturnsSummary';
 import NAVChart from './NAVChart';
 import LineChart from './LineChart';
-import ChartStatisticsDisplay from './ChartStatisticsDisplay';
+import NavStatisticsDisplay from './NavStatisticsDisplay';
 
 interface ReturnsCalculatorProps {
     navData: NAVData[];
@@ -23,7 +24,6 @@ const TIMEFRAMES = [
 
 export default function ReturnsCalculator({ navData, currentNav }: ReturnsCalculatorProps) {
     const [selectedTimeframe, setSelectedTimeframe] = useState('1Y');
-    const [isAccordionOpen, setIsAccordionOpen] = useState(true);
     const [chartType, setChartType] = useState<'line' | 'histogram'>('line');
 
     const returnsMetrics = useMemo(() => {
@@ -144,7 +144,7 @@ export default function ReturnsCalculator({ navData, currentNav }: ReturnsCalcul
 
             {/* Chart Statistics Display */}
             {selectedMetric.isAvailable && filteredNavData.length > 0 && (
-                <ChartStatisticsDisplay navData={filteredNavData} />
+                <NavStatisticsDisplay navData={filteredNavData} />
             )}
 
             {/* Chart Type Selector and Chart */}
@@ -186,36 +186,9 @@ export default function ReturnsCalculator({ navData, currentNav }: ReturnsCalcul
 
 
             {selectedMetric.isAvailable && (
-                <div className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 border border-purple-500/30 rounded-lg overflow-hidden">
-                    {/* Accordion Header */}
-                    <button
-                        onClick={() => setIsAccordionOpen(!isAccordionOpen)}
-                        className="w-full px-6 py-4 flex items-center justify-between hover:bg-slate-700/30 transition"
-                    >
-                        <h3 className="text-lg font-semibold text-purple-300">Returns Summary</h3>
-                        <div className="flex items-center gap-2">
-                            <span className="text-sm font-medium text-purple-300">
-                                {isAccordionOpen ? 'Hide' : 'Show'}
-                            </span>
-                            <svg
-                                className={`w-5 h-5 text-purple-300 transition-transform ${isAccordionOpen ? 'transform rotate-180' : ''
-                                    }`}
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                            >
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-                            </svg>
-                        </div>
-                    </button>
-
-                    {/* Accordion Content */}
-                    {isAccordionOpen && (
-                        <div className="px-6 py-4 border-t border-purple-500/30">
-                            <ReturnsSummary selectedMetric={selectedMetric} />
-                        </div>
-                    )}
-                </div>
+                <Accordion title="Returns Summary" isOpen={true}>
+                    <ReturnsSummary selectedMetric={selectedMetric} />
+                </Accordion>
             )}
 
             {!selectedMetric.isAvailable && (
