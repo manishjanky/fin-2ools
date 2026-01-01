@@ -14,7 +14,7 @@ export default function Header() {
             <div className="w-10 h-10 bg-gradient-to-br from-purple-400 to-blue-500 rounded-lg flex items-center justify-center">
               <span className="text-white font-bold text-2xl">₹</span>
             </div>
-            <h1 className="text-lg font-bold text-white">FinTools</h1>
+            <h1 className="text-lg font-bold text-white">fin-2ools</h1>
           </button>
           <nav className="hidden md:flex space-x-8">
             {/* <button

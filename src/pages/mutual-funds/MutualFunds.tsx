@@ -70,15 +70,6 @@ export default function MutualFunds() {
           </section>
         )}
       </main>
-
-      {/* Footer */}
-      <footer className="border-t border-purple-500/30 mt-20 py-8 bg-slate-900/50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center text-purple-300 text-sm">
-            <p>&copy; 2026 FinTools. All rights reserved.</p>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 }

@@ -1,5 +1,9 @@
 import { useState, useMemo } from 'react';
 import type { NAVData, ReturnsMetrics } from '../../../types/mutual-funds';
+import ReturnsSummary from './ReturnsSummary';
+import NAVChart from './NAVChart';
+import LineChart from './LineChart';
+import ChartStatisticsDisplay from './ChartStatisticsDisplay';
 
 interface ReturnsCalculatorProps {
     navData: NAVData[];
@@ -19,78 +23,94 @@ const TIMEFRAMES = [
 
 export default function ReturnsCalculator({ navData, currentNav }: ReturnsCalculatorProps) {
     const [selectedTimeframe, setSelectedTimeframe] = useState('1Y');
+    const [isAccordionOpen, setIsAccordionOpen] = useState(true);
+    const [chartType, setChartType] = useState<'line' | 'histogram'>('line');
 
     const returnsMetrics = useMemo(() => {
         const today = new Date();
         const metrics: Record<string, ReturnsMetrics> = {};
 
-    // Helper function to calculate CAGR (Compound Annual Growth Rate)
-    // Formula: CAGR = (Ending Value / Beginning Value) ^ (1 / Number of Years) - 1
-    const calculateCAGR = (startNav: number, endNav: number, years: number): number => {
-      if (startNav <= 0 || years <= 0) return 0;
-      return (Math.pow(endNav / startNav, 1 / years) - 1) * 100;
-    };
-
-    // Helper function to calculate XIRR (Extended Internal Rate of Return)
-    // For single lump sum investments (no periodic cash flows), XIRR = CAGR
-    // XIRR accounts for the timing of cash flows and returns an annualized percentage
-    const calculateXIRR = (startNav: number, endNav: number, days: number): number => {
-      const years = days / 365.25; // Using 365.25 for more accurate annual calculation
-      if (startNav <= 0 || years <= 0) return 0;
-      // For single investment NAV data: XIRR ≈ (Ending NAV / Starting NAV) ^ (365.25 / days) - 1
-      return (Math.pow(endNav / startNav, 365.25 / days) - 1) * 100;
-    };
-
-    TIMEFRAMES.forEach(({ label, days }) => {
-      const targetDate = new Date(today);
-      targetDate.setDate(targetDate.getDate() - days);
-
-      // Find the closest NAV data point before or on the target date
-      const historicalNav = navData.find((nav) => {
-        const navDate = new Date(nav.date.split('-').reverse().join('-'));
-        return navDate <= targetDate;
-      });
-
-      if (historicalNav) {
-        const startNav = parseFloat(historicalNav.nav);
-        const endNav = currentNav;
-        const absoluteReturn = endNav - startNav;
-        const percentageReturn = (absoluteReturn / startNav) * 100;
-        const years = days / 365;
-        const cagr = calculateCAGR(startNav, endNav, years);
-        const xirr = calculateXIRR(startNav, endNav, days);
-
-        metrics[label] = {
-          timeframeLabel: label,
-          days,
-          startNav,
-          endNav,
-          absoluteReturn,
-          percentageReturn,
-          cagr,
-          xirr,
-          isAvailable: true,
+        // Helper function to calculate CAGR (Compound Annual Growth Rate)
+        // Formula: CAGR = (Ending Value / Beginning Value) ^ (1 / Number of Years) - 1
+        const calculateCAGR = (startNav: number, endNav: number, years: number): number => {
+            if (startNav <= 0 || years <= 0) return 0;
+            return (Math.pow(endNav / startNav, 1 / years) - 1) * 100;
         };
-      } else {
-        metrics[label] = {
-          timeframeLabel: label,
-          days,
-          startNav: 0,
-          endNav: 0,
-          absoluteReturn: 0,
-          percentageReturn: 0,
-          cagr: 0,
-          xirr: 0,
-          isAvailable: false,
-        };
-      }
-    });
 
-    return metrics;
-  }, [navData, currentNav]);
+        // Helper function to calculate XIRR (Extended Internal Rate of Return)
+        // For single lump sum investments (no periodic cash flows), XIRR = CAGR
+        // XIRR accounts for the timing of cash flows and returns an annualized percentage
+        const calculateXIRR = (startNav: number, endNav: number, days: number): number => {
+            const years = days / 365.25; // Using 365.25 for more accurate annual calculation
+            if (startNav <= 0 || years <= 0) return 0;
+            // For single investment NAV data: XIRR ≈ (Ending NAV / Starting NAV) ^ (365.25 / days) - 1
+            return (Math.pow(endNav / startNav, 365.25 / days) - 1) * 100;
+        };
+
+        TIMEFRAMES.forEach(({ label, days }) => {
+            const targetDate = new Date(today);
+            targetDate.setDate(targetDate.getDate() - days);
+
+            // Find the closest NAV data point before or on the target date
+            const historicalNav = navData.find((nav) => {
+                const navDate = new Date(nav.date.split('-').reverse().join('-'));
+                return navDate <= targetDate;
+            });
+
+            if (historicalNav) {
+                const startNav = parseFloat(historicalNav.nav);
+                const endNav = currentNav;
+                const absoluteReturn = endNav - startNav;
+                const percentageReturn = (absoluteReturn / startNav) * 100;
+                const years = days / 365;
+                const cagr = calculateCAGR(startNav, endNav, years);
+                const xirr = calculateXIRR(startNav, endNav, days);
+
+                metrics[label] = {
+                    timeframeLabel: label,
+                    days,
+                    startNav,
+                    endNav,
+                    absoluteReturn,
+                    percentageReturn,
+                    cagr,
+                    xirr,
+                    isAvailable: true,
+                };
+            } else {
+                metrics[label] = {
+                    timeframeLabel: label,
+                    days,
+                    startNav: 0,
+                    endNav: 0,
+                    absoluteReturn: 0,
+                    percentageReturn: 0,
+                    cagr: 0,
+                    xirr: 0,
+                    isAvailable: false,
+                };
+            }
+        });
+
+        return metrics;
+    }, [navData, currentNav]);
 
     const selectedMetric = returnsMetrics[selectedTimeframe];
-    const isPositive = selectedMetric.percentageReturn >= 0;
+    // const isPositive = selectedMetric.percentageReturn >= 0;
+
+    // Filter navData for selected timeframe
+    const filteredNavData = useMemo(() => {
+        if (!selectedMetric.isAvailable) return [];
+
+        const today = new Date();
+        const targetDate = new Date(today);
+        targetDate.setDate(targetDate.getDate() - selectedMetric.days);
+
+        return navData.filter((nav) => {
+            const navDate = new Date(nav.date.split('-').reverse().join('-'));
+            return navDate >= targetDate && navDate <= today;
+        });
+    }, [navData, selectedMetric]);
 
     const getTimeFrameClassname = (label: string, metric: ReturnsMetrics) => {
         if (selectedTimeframe === label) {
@@ -102,13 +122,13 @@ export default function ReturnsCalculator({ navData, currentNav }: ReturnsCalcul
     };
 
     return (
-        <div className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 border border-purple-500/30 rounded-lg p-6">
-            <div className="flex md:flex-col gap-8">
-                {/* Timeframe Selector */}
-                <div className="flex flex-col md:flex-row gap-2">
+        <div className="space-y-6">
+            {/* Timeframe Selector */}
+            <div className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 border border-purple-500/30 rounded-lg p-4">
+                <div className="flex flex-wrap gap-2 md:gap-3">
                     {TIMEFRAMES.map(({ label }) => {
                         const metric = returnsMetrics[label];
-                        return (
+                        return metric.isAvailable ?
                             <button
                                 key={label}
                                 onClick={() => setSelectedTimeframe(label)}
@@ -117,100 +137,96 @@ export default function ReturnsCalculator({ navData, currentNav }: ReturnsCalcul
                             >
                                 {label}
                             </button>
-                        );
+                            : null
                     })}
                 </div>
+            </div>
 
-                {/* Returns Summary */}
-                <div className="flex-1">
-                    {selectedMetric.isAvailable ? (
-                        <div className="space-y-6">
-                            {/* Main Return Value */}
-                            <div>
-                                <h3 className="text-purple-300 text- mb-3">
-                                    Returns for {selectedMetric.timeframeLabel}
-                                </h3>
-                                <div className="md:flex sm:items-start md:items-baseline gap-4">
-                                    <p
-                                        className={`text-4xl font-bold ${isPositive ? 'text-green-400' : 'text-red-400'
-                                            }`}
-                                    >
-                                        {isPositive ? '+' : ''}
-                                        {selectedMetric.percentageReturn.toFixed(2)}%
-                                    </p>
-                                    <p
-                                        className={`text-2xl font-semibold ${isPositive ? 'text-green-300' : 'text-red-300'
-                                            }`}
-                                    >
-                                        {isPositive ? '+' : ''}₹{selectedMetric.absoluteReturn.toFixed(2)}
-                                    </p>
-                                </div>
-                            </div>
+            {/* Chart Statistics Display */}
+            {selectedMetric.isAvailable && filteredNavData.length > 0 && (
+                <ChartStatisticsDisplay navData={filteredNavData} />
+            )}
 
-                            {/* Details Grid */}
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                <div className="bg-slate-800/50 rounded-lg p-4">
-                                    <p className="text-blue-300 text-xs mb-1">Start NAV</p>
-                                    <p className="text-white font-semibold text-lg">
-                                        ₹{selectedMetric.startNav.toFixed(2)}
-                                    </p>
-                                </div>
-                                <div className="bg-slate-800/50 rounded-lg p-4">
-                                    <p className="text-cyan-300 text-xs mb-1">Current NAV</p>
-                                    <p className="text-white font-semibold text-lg">
-                                        ₹{selectedMetric.endNav.toFixed(2)}
-                                    </p>
-                                </div>
-                                <div className="bg-slate-800/50 rounded-lg p-4">
-                                    <p className="text-purple-300 text-xs mb-1">Absolute Return</p>
-                                    <p
-                                        className={`font-semibold text-lg ${isPositive ? 'text-green-400' : 'text-red-400'
-                                            }`}
-                                    >
-                                        {isPositive ? '+' : ''}₹{selectedMetric.absoluteReturn.toFixed(2)}
-                                    </p>
-                                </div>
-                                <div className="bg-slate-800/50 rounded-lg p-4">
-                                    <p className="text-purple-300 text-xs mb-1">Absolute Return Percentage</p>
-                                    <p
-                                        className={`font-semibold text-lg ${isPositive ? 'text-green-400' : 'text-red-400'
-                                            }`}
-                                    >
-                                        {isPositive ? '+' : ''}
-                                        {selectedMetric.percentageReturn.toFixed(2)}%
-                                    </p>
-                                </div>
-                                <div className="bg-slate-800/50 rounded-lg p-4">
-                                    <p className="text-green-300 text-xs mb-1">CAGR</p>
-                                    <p
-                                        className={`font-semibold text-lg ${selectedMetric.cagr >= 0 ? 'text-green-400' : 'text-red-400'
-                                            }`}
-                                    >
-                                        {selectedMetric.cagr >= 0 ? '+' : ''}
-                                        {selectedMetric.cagr.toFixed(2)}%
-                                    </p>
-                                </div>
-                                <div className="bg-slate-800/50 rounded-lg p-4">
-                                    <p className="text-cyan-300 text-xs mb-1">XIRR</p>
-                                    <p
-                                        className={`font-semibold text-lg ${selectedMetric.xirr >= 0 ? 'text-green-400' : 'text-red-400'
-                                            }`}
-                                    >
-                                        {selectedMetric.xirr >= 0 ? '+' : ''}
-                                        {selectedMetric.xirr.toFixed(2)}%
-                                    </p>
-                                </div>
-                            </div>
+            {/* Chart Type Selector and Chart */}
+            {selectedMetric.isAvailable && filteredNavData.length > 0 && (
+                <div className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 border border-purple-500/30 rounded-lg p-4 space-y-4">
+                    {/* Chart Type Selector */}
+                    <div className="flex gap-2">
+                        <button
+                            onClick={() => setChartType('line')}
+                            className={`px-4 py-2 rounded-lg transition font-medium text-sm ${chartType === 'line'
+                                ? 'bg-purple-600 text-white border border-purple-400'
+                                : 'bg-slate-700/50 text-slate-300 border border-slate-600 hover:bg-slate-600/50'
+                                }`}
+                        >
+                            Line Chart
+                        </button>
+                        <button
+                            onClick={() => setChartType('histogram')}
+                            className={`px-4 py-2 rounded-lg transition font-medium text-sm ${chartType === 'histogram'
+                                ? 'bg-purple-600 text-white border border-purple-400'
+                                : 'bg-slate-700/50 text-slate-300 border border-slate-600 hover:bg-slate-600/50'
+                                }`}
+                        >
+                            Histogram
+                        </button>
+
+                    </div>
+
+                    {/* NAV Chart */}
+                    <div>
+                        {chartType === 'histogram' ? (
+                            <NAVChart navData={filteredNavData} timeframeLabel={selectedMetric.timeframeLabel} />
+                        ) : (
+                            <LineChart navData={filteredNavData} timeframeLabel={selectedMetric.timeframeLabel} />
+                        )}
+                    </div>
+                </div>
+            )}
+
+
+            {selectedMetric.isAvailable && (
+                <div className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 border border-purple-500/30 rounded-lg overflow-hidden">
+                    {/* Accordion Header */}
+                    <button
+                        onClick={() => setIsAccordionOpen(!isAccordionOpen)}
+                        className="w-full px-6 py-4 flex items-center justify-between hover:bg-slate-700/30 transition"
+                    >
+                        <h3 className="text-lg font-semibold text-purple-300">Returns Summary</h3>
+                        <div className="flex items-center gap-2">
+                            <span className="text-sm font-medium text-purple-300">
+                                {isAccordionOpen ? 'Hide' : 'Show'}
+                            </span>
+                            <svg
+                                className={`w-5 h-5 text-purple-300 transition-transform ${isAccordionOpen ? 'transform rotate-180' : ''
+                                    }`}
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                            >
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                            </svg>
                         </div>
-                    ) : (
-                        <div className="text-center py-8">
-                            <p className="text-purple-200">
-                                Insufficient data available for returns calculation
-                            </p>
+                    </button>
+
+                    {/* Accordion Content */}
+                    {isAccordionOpen && (
+                        <div className="px-6 py-4 border-t border-purple-500/30">
+                            <ReturnsSummary selectedMetric={selectedMetric} />
                         </div>
                     )}
                 </div>
-            </div>
+            )}
+
+            {!selectedMetric.isAvailable && (
+                <div className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 border border-purple-500/30 rounded-lg p-6">
+                    <div className="text-center py-8">
+                        <p className="text-purple-200">
+                            Insufficient data available for returns calculation
+                        </p>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

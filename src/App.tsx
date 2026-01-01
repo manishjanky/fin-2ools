@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import Home from './pages/Home';
 import SchemeDetails from './pages/mutual-funds/SchemeDetails';
 import './App.css';
+import Footer from './components/common/Footer';
 
 // Lazy load FD and Mutual Funds pages for code splitting
 const FD = lazy(() => import('./pages/fd/FD'));
@@ -22,30 +23,34 @@ function PageLoader() {
 
 function App() {
   return (
-    <Router>
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/home" element={<Home />} />
-        <Route
-          path="/fd"
-          element={
-            <Suspense fallback={<PageLoader />}>
-              <FD />
-            </Suspense>
-          }
-        />
-        <Route
-          path="/mutual-funds"
-          element={
-            <Suspense fallback={<PageLoader />}>
-              <MutualFunds />
-            </Suspense>
-          }
-        />
-        <Route path="/mutual-funds/scheme/:schemeCode" element={<SchemeDetails />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </Router>
+    <>
+      <Router>
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/home" element={<Home />} />
+          <Route
+            path="/fd"
+            element={
+              <Suspense fallback={<PageLoader />}>
+                <FD />
+              </Suspense>
+            }
+          />
+          <Route
+            path="/mutual-funds"
+            element={
+              <Suspense fallback={<PageLoader />}>
+                <MutualFunds />
+              </Suspense>
+            }
+          />
+          <Route path="/mutual-funds/scheme/:schemeCode" element={<SchemeDetails />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </Router>
+      <Footer />
+    </>
+
   );
 }
 
