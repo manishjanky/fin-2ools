@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import type { FDInput } from '../../../types/fd';
+import type { FDInput, FDSummary as FDSummaryType } from '../../../types/fd';
+import { calculateFDReturns } from '../utils/fdCalculator';
+import FDSummary from './FDSummary';
+import FDTable from './FDTable';
 
-interface FDFormProps {
-  onCalculate: (input: FDInput) => void;
-}
 
-export default function FDForm({ onCalculate }: FDFormProps) {
+export default function FDForm() {
   const [formData, setFormData] = useState<FDInput>({
     startDate: new Date().toISOString().split('T')[0],
     principal: 100000.00,
@@ -16,6 +16,8 @@ export default function FDForm({ onCalculate }: FDFormProps) {
     compounding: 'annually',
     payoutType: 'maturity',
   });
+  const [summary, setSummary] = useState<FDSummaryType | null>(null);
+
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
@@ -34,7 +36,8 @@ export default function FDForm({ onCalculate }: FDFormProps) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onCalculate(formData);
+    const result = calculateFDReturns(formData);
+    setSummary(result);
   };
 
   return (
@@ -194,6 +197,22 @@ export default function FDForm({ onCalculate }: FDFormProps) {
           Calculate FD Returns
         </button>
       </form>
+
+
+      {/* Results Section */}
+      {summary && (
+        <>
+          {/* Summary Card */}
+          <section className="mb-12 mt-12">
+            <FDSummary summary={summary} />
+          </section>
+
+          {/* Results Table */}
+          <section>
+            <FDTable data={summary.fyData} />
+          </section>
+        </>
+      )}
     </div>
   );
 }

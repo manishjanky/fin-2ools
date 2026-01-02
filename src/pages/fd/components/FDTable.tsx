@@ -8,7 +8,7 @@ export default function FDTable({ data }: FDTableProps) {
   return (
     <div className="bg-gradient-to-br from-purple-500/10 to-blue-500/10 border border-purple-500/30 rounded-lg overflow-hidden">
       <div className="px-6 py-4 border-b border-purple-500/30">
-        <h2 className="text-2xl font-bold text-white">Year-wise Breakdown</h2>
+        <h2 className="text-2xl font-bold text-white">Financial Year-wise Breakdown</h2>
         <p className="text-purple-200 text-sm mt-1">Interest earned and balance details for each financial year</p>
       </div>
 

@@ -1,18 +1,9 @@
-import { useState } from 'react';
-import type { FDInput, FDSummary as FDSummaryType } from '../types/fd';
-import { calculateFDReturns } from '../utils/fdCalculator';
 import Header from '../components/common/Header';
-import FDForm from '../components/fd/FDForm';
-import FDSummary from '../components/fd/FDSummary';
-import FDTable from '../components/fd/FDTable';
+import FDForm from './fd/components/FDForm';
+
+
 
 export default function FD() {
-  const [summary, setSummary] = useState<FDSummaryType | null>(null);
-
-  const handleCalculate = (input: FDInput) => {
-    const result = calculateFDReturns(input);
-    setSummary(result);
-  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
@@ -31,33 +22,10 @@ export default function FD() {
 
         {/* Form Section */}
         <section className="mb-12">
-          <FDForm onCalculate={handleCalculate} />
+          <FDForm />
         </section>
 
-        {/* Results Section */}
-        {summary && (
-          <>
-            {/* Summary Card */}
-            <section className="mb-12">
-              <FDSummary summary={summary} />
-            </section>
-
-            {/* Results Table */}
-            <section>
-              <FDTable data={summary.fyData} />
-            </section>
-          </>
-        )}
       </main>
-
-      {/* Footer */}
-      <footer className="border-t border-purple-500/30 mt-20 py-8 bg-slate-900/50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center text-purple-300 text-sm">
-            <p>&copy; 2026 FinTools. All rights reserved.</p>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 }

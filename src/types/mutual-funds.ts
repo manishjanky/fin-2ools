@@ -46,6 +46,31 @@ export interface ReturnsMetrics {
   absoluteReturn: number;
   percentageReturn: number;
   cagr: number;
-  xirr: number;
+  xirr?: number;
   isAvailable: boolean;
+}
+
+// New types for user investments
+export interface UserInvestment {
+  schemeCode: number;
+  investmentType: 'lumpsum' | 'sip';
+  startDate: string;
+  amount: number;
+  sipMonths?: number; // For SIP: number of months to continue
+  sipAmount?: number; // For SIP: monthly investment amount
+}
+
+export interface UserInvestmentData {
+  schemeCode: number;
+  investments: UserInvestment[];
+}
+
+export interface InvestmentMetrics {
+  totalInvested: number;
+  currentValue: number;
+  absoluteGain: number;
+  percentageReturn: number;
+  xirr: number;
+  cagr: number;
+  numberOfFunds: number;
 }

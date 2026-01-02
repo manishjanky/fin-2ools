@@ -1,10 +1,11 @@
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
+import Back from './Back';
 
 export default function Header() {
   const navigate = useNavigate();
 
   return (
-    <header className="border-b border-purple-500/30 backdrop-blur-md bg-slate-900/50 sticky top-0 z-50">
+    <> <header className="border-b border-purple-500/30 backdrop-blur-md bg-slate-900/50 sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
         <div className="flex items-center justify-between">
           <button
@@ -43,5 +44,12 @@ export default function Header() {
         </div>
       </div>
     </header>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-2">
+        <Back navigate={navigate} />
+
+      </div>
+    </>
+
+
   );
 }

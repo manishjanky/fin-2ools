@@ -53,11 +53,11 @@ export default function LineChart({ navData, timeframeLabel }: LineChartProps) {
     });
 
     const chartData = {
-        labels: sampledLabels.reverse(),
+        labels: sampledLabels,
         datasets: [
             {
                 label: `NAV Trend (${timeframeLabel || 'Selected Period'})`,
-                data: sampledNavValues.reverse(),
+                data: sampledNavValues,
                 borderColor: '#a78bfa',
                 backgroundColor: 'rgba(167, 139, 250, 0.1)',
                 fill: true,

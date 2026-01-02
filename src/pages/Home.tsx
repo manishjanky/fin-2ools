@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import FeatureTile from '../components/common/FeatureTile';
 import Header from '../components/common/Header';
 
@@ -30,7 +30,7 @@ export default function Home() {
               description="Calculate and project your Fixed Deposit returns with detailed maturity amounts and interest earnings. Compare rates from different providers."
               icon="📊"
               gradient="from-purple-500 to-blue-600"
-              onClick={() => navigate('/fd')}
+              onClick={() => navigate('fd')}
             />
           </div>
           <div className="cursor-pointer">
@@ -39,7 +39,7 @@ export default function Home() {
               description="Explore mutual fund options, compare returns, and analyze your portfolio performance. Make informed investment decisions."
               icon="📈"
               gradient="from-blue-500 to-cyan-600"
-              onClick={() => navigate('/mutual-funds')}
+              onClick={() => navigate('mutual-funds')}
             />
           </div>
         </section>

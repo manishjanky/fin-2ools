@@ -1,6 +1,10 @@
-import type { MutualFundScheme, SearchResult, SchemeHistoryResponse } from '../../../types/mutual-funds';
+import type {
+  MutualFundScheme,
+  SearchResult,
+  SchemeHistoryResponse,
+} from "../../../types/mutual-funds";
 
-const API_BASE = 'https://api.mfapi.in';
+const API_BASE = "https://api.mfapi.in";
 
 export async function fetchLatestNAV(
   limit: number = 100,
@@ -15,25 +19,31 @@ export async function fetchLatestNAV(
     }
     return await response.json();
   } catch (error) {
-    console.error('Error fetching mutual funds:', error);
+    console.error("Error fetching mutual funds:", error);
     throw error;
   }
 }
 
-export async function searchMutualFunds(query: string): Promise<SearchResult[]> {
+export async function searchMutualFunds(
+  query: string
+): Promise<SearchResult[]> {
   try {
-    const response = await fetch(`${API_BASE}/mf/search?q=${encodeURIComponent(query)}`);
+    const response = await fetch(
+      `${API_BASE}/mf/search?q=${encodeURIComponent(query)}`
+    );
     if (!response.ok) {
       throw new Error(`API Error: ${response.statusText}`);
     }
     return await response.json();
   } catch (error) {
-    console.error('Error searching mutual funds:', error);
+    console.error("Error searching mutual funds:", error);
     throw error;
   }
 }
 
-export async function fetchSchemeDetails(schemeCode: number): Promise<MutualFundScheme | null> {
+export async function fetchSchemeDetails(
+  schemeCode: number
+): Promise<MutualFundScheme | null> {
   try {
     const response = await fetch(`${API_BASE}/mf/${schemeCode}/latest`);
     if (!response.ok) {
@@ -55,7 +65,7 @@ export async function fetchSchemeDetails(schemeCode: number): Promise<MutualFund
     }
     return null;
   } catch (error) {
-    console.error('Error fetching scheme details:', error);
+    console.error("Error fetching scheme details:", error);
     throw error;
   }
 }
@@ -71,24 +81,25 @@ export async function fetchSchemeHistory(
 
     const formatDate = (date: Date): string => {
       const year = date.getFullYear();
-      const month = String(date.getMonth() + 1).padStart(2, '0');
-      const day = String(date.getDate()).padStart(2, '0');
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
       return `${year}-${month}-${day}`;
     };
 
     const response = await fetch(
-      `${API_BASE}/mf/${schemeCode}?startDate=${formatDate(startDate)}&endDate=${formatDate(endDate)}`
+      `${API_BASE}/mf/${schemeCode}?startDate=${formatDate(
+        startDate
+      )}&endDate=${formatDate(endDate)}`
     );
 
     if (!response.ok) {
       throw new Error(`API Error: ${response.statusText}`);
     }
 
-    const data = await response.json();
-    return data;
+    const navHistory = await response.json();
+    return { ...navHistory, data: navHistory.data.reverse() };
   } catch (error) {
-    console.error('Error fetching scheme history:', error);
+    console.error("Error fetching scheme history:", error);
     throw error;
   }
 }
-

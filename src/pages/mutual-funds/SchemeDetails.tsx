@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams } from 'react-router';
 import type { MutualFundScheme, SchemeHistoryResponse } from '../../types/mutual-funds';
 import { fetchSchemeDetails, fetchSchemeHistory } from './utils/mutualFundsService';
 import Header from '../../components/common/Header';
@@ -7,20 +7,10 @@ import ReturnsCalculator from './components/ReturnsCalculator';
 import moment from 'moment';
 import Accordion from '../../components/common/Accordion';
 
-function BackToMutualFundsButton({ navigate }: { navigate: ReturnType<typeof useNavigate> }) {
-    return (
-        <button
-            onClick={() => navigate('/mutual-funds')}
-            className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition mb-2"
-        >
-            ← Back to Mutual Funds
-        </button>
-    )
-}
+
 
 export default function SchemeDetails() {
     const { schemeCode } = useParams<{ schemeCode: string }>();
-    const navigate = useNavigate();
     const [scheme, setScheme] = useState<MutualFundScheme | null>(null);
     const [history, setHistory] = useState<SchemeHistoryResponse | null>(null);
     const [loading, setLoading] = useState(true);
@@ -68,7 +58,7 @@ export default function SchemeDetails() {
         return (
             <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
                 <Header />
-                <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+                <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
                     <div className="text-center">
                         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500 mx-auto mb-4"></div>
                         <p className="text-purple-200">Loading scheme details...</p>
@@ -82,10 +72,9 @@ export default function SchemeDetails() {
         return (
             <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
                 <Header />
-                <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+                <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
                     <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-6 mb-6 text-red-200">
                         <p className="font-semibold mb-4">{error || 'Scheme not found'}</p>
-                        <BackToMutualFundsButton navigate={navigate} />
                     </div>
                 </main>
             </div>
@@ -99,7 +88,6 @@ export default function SchemeDetails() {
             <Header />
 
             <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 mt-0">
-                <BackToMutualFundsButton navigate={navigate} />
                 {/* Scheme Header */}
                 <section className="mb-4 bg-gradient-to-br from-blue-500/10 to-cyan-500/10 border border-blue-500/30 rounded-lg p-4">
                     <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
