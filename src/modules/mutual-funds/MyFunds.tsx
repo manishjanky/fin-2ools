@@ -7,6 +7,8 @@ import type { MutualFundScheme, UserInvestmentData } from './types/mutual-funds'
 import { fetchSchemeDetails } from './utils/mutualFundsService';
 import MyFundsCard from './components/MyFundsCard';
 import MyFundsSummary from './components/MyFundsSummary';
+import Accordion from '../../components/common/Accordion';
+import Loader from '../../components/common/Loader';
 
 export default function MyFunds() {
   const navigate = useNavigate();
@@ -59,16 +61,9 @@ export default function MyFunds() {
     loadFundDetails();
   }, [getAllInvestments, hasInvestments]);
 
-  const handleCardClick = (schemeCode: number) => {
-    navigate(`/mutual-funds/scheme/${schemeCode}`);
+ const handleCardClick = (schemeCode: string | number) => {
+    navigate(`/mutual-funds/my-funds/investment/${schemeCode}`);
   };
-
-
-
-  const getHeaderStyle = () => ({
-    backgroundColor: 'var(--color-bg-primary)',
-    borderColor: 'var(--color-border-main)',
-  });
 
   return (
     <div
@@ -78,33 +73,52 @@ export default function MyFunds() {
       <Header />
 
       <header
-        className="backdrop-blur-sm border-b py-6"
-        style={getHeaderStyle()}
+        className="backdrop-blur-sm py-4"
+        style={{
+          backgroundColor: 'var(--color-bg-primary)',
+        }}
       >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h1
-            className="text-4xl md:text-5xl font-bold mb-4"
-            style={{ color: 'var(--color-text-primary)' }}
+        <div className="max-w-7xl mx-auto px-4 grid grid-cols-2 gap-4 items-center mb-4">
+          <div>
+            <h1
+              className="text-4xl md:text-5xl font-bold"
+              style={{ color: 'var(--color-text-primary)' }}
+            >
+              My{' '}
+              <span style={{ color: 'var(--color-secondary-main)' }}>
+                Funds({fundsWithDetails.length})
+              </span>
+            </h1>
+            {fundsWithDetails.length > 0 && (
+              <p className="text-md mt-2" style={{ color: 'var(--color-text-secondary)' }}>
+                {fundsWithDetails.length} {fundsWithDetails.length === 1 ? 'fund' : 'funds'} in your portfolio
+              </p>
+            )}
+          </div>
+
+          <button
+            onClick={() => navigate('/mutual-funds/explore-funds')}
+            className="px-6 py-2 rounded-lg font-medium transition  w-auto justify-self-end"
+            style={{
+              backgroundColor: 'var(--color-bg-secondary)',
+              color: 'var(--color-text-secondary)',
+              border: `1px solid var(--color-border-main)`,
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = 'var(--color-bg-tertiary)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = 'var(--color-bg-secondary)';
+            }}
           >
-            My{' '}
-            <span style={{ color: 'var(--color-secondary-main)' }}>
-              Funds
-            </span>
-          </h1>
+            Explore Funds
+          </button>
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <main className="max-w-7xl mx-auto px-4">
         {loading ? (
-          <div className="text-center py-12">
-            <div
-              className="inline-block animate-spin rounded-full h-12 w-12 border-b-2"
-              style={{ borderColor: 'var(--color-primary-main)' }}
-            />
-            <p className="mt-4" style={{ color: 'var(--color-text-secondary)' }}>
-              Loading your investments...
-            </p>
-          </div>
+          <Loader message="Loading your investments..." fullHeight={true}/>
         ) : fundsWithDetails.length === 0 ? (
           <div
             className="rounded-lg p-12 text-center border"
@@ -132,44 +146,17 @@ export default function MyFunds() {
             >
               Explore Mutual Funds
             </button>
+
+
           </div>
         ) : (
           <>
             {/* Summary Section */}
-            <section className="mb-12">
-              <MyFundsSummary fundsWithDetails={fundsWithDetails} />
+            <section className="mb-6">
+              <Accordion title="Portfolio Summary" isOpen={true}>
+                <MyFundsSummary fundsWithDetails={fundsWithDetails} />
+              </Accordion>
             </section>
-
-            {/* Navigation Tabs */}
-            <div className="flex gap-4 mb-8">
-              <button
-                className="px-6 py-2 rounded-lg font-medium transition disabled:opacity-75"
-                style={{
-                  backgroundColor: 'var(--color-primary-main)',
-                  color: 'var(--color-text-inverse)',
-                }}
-                disabled
-              >
-                My Funds
-              </button>
-              <button
-                onClick={() => navigate('/mutual-funds/explore-funds')}
-                className="px-6 py-2 rounded-lg font-medium transition"
-                style={{
-                  backgroundColor: 'var(--color-bg-secondary)',
-                  color: 'var(--color-text-secondary)',
-                  border: `1px solid var(--color-border-main)`,
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = 'var(--color-bg-tertiary)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = 'var(--color-bg-secondary)';
-                }}
-              >
-                Explore More
-              </button>
-            </div>
 
             {/* Funds List */}
             <section className="grid grid-cols-1 gap-6">

@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'react';
+import moment from 'moment';
 import type { MutualFundScheme, UserInvestmentData } from '../types/mutual-funds';
-import { calculateInvestmentValue } from '../utils/investmentCalculations';
+import { calculateInvestmentValue, calculateXIRR, calculateCAGRForInvestments } from '../utils/investmentCalculations';
 import { fetchSchemeHistory } from '../utils/mutualFundsService';
+import Loader from '../../../components/common/Loader';
+import MetricCard from './MetricCard';
 
 interface MyFundsSummaryProps {
   fundsWithDetails: Array<{
@@ -18,7 +21,6 @@ export default function MyFundsSummary({
     totalCurrentValue: 0,
     absoluteGain: 0,
     percentageReturn: 0,
-    numberOfFunds: fundsWithDetails.length,
     xirr: 0,
     cagr: 0,
   });
@@ -30,6 +32,7 @@ export default function MyFundsSummary({
         let totalInvested = 0;
         let totalCurrentValue = 0;
         let allInvestments = [];
+        let allNavHistories = [];
 
         for (const { scheme, investmentData } of fundsWithDetails) {
           const history = await fetchSchemeHistory(scheme.schemeCode, 365);
@@ -39,24 +42,52 @@ export default function MyFundsSummary({
             const value = calculateInvestmentValue(investment, history.data);
             totalInvested += value.investedAmount;
             totalCurrentValue += value.currentValue;
-            allInvestments.push({
-              ...investment,
-              navHistory: history.data,
-            });
+            allInvestments.push(investment);
           }
+          allNavHistories.push(history.data);
         }
 
         const absoluteGain = totalCurrentValue - totalInvested;
         const percentageReturn = totalInvested > 0 ? (absoluteGain / totalInvested) * 100 : 0;
+
+        // Calculate CAGR - need combined nav history
+        let cagr = 0;
+        if (allInvestments.length > 0 && allNavHistories.length > 0) {
+          // Merge and sort all NAV histories
+          const mergedNavHistory = allNavHistories
+            .flat()
+            .reduce((acc: typeof allNavHistories[0], current) => {
+              const exists = (acc as typeof allNavHistories[0]).some(nav => nav.date === current.date);
+              if (!exists) (acc as typeof allNavHistories[0]).push(current);
+              return acc;
+            }, [] as typeof allNavHistories[0])
+            .sort((a, b) => moment(a.date, 'DD-MM-YYYY').diff(moment(b.date, 'DD-MM-YYYY')));
+
+          cagr = calculateCAGRForInvestments(allInvestments, mergedNavHistory);
+        }
+
+        // Calculate XIRR for all investments across all funds
+        let xirr = 0;
+        if (allInvestments.length > 0 && allNavHistories.length > 0) {
+          const mergedNavHistory = allNavHistories
+            .flat()
+            .reduce((acc: typeof allNavHistories[0], current) => {
+              const exists = (acc as typeof allNavHistories[0]).some(nav => nav.date === current.date);
+              if (!exists) (acc as typeof allNavHistories[0]).push(current);
+              return acc;
+            }, [] as typeof allNavHistories[0])
+            .sort((a, b) => moment(a.date, 'DD-MM-YYYY').diff(moment(b.date, 'DD-MM-YYYY')));
+
+          xirr = calculateXIRR(allInvestments, mergedNavHistory);
+        }
 
         setMetrics({
           totalInvested,
           totalCurrentValue,
           absoluteGain,
           percentageReturn,
-          numberOfFunds: fundsWithDetails.length,
-          xirr: 0,
-          cagr: 0,
+          xirr,
+          cagr,
         });
       } catch (error) {
         console.error('Error calculating metrics:', error);
@@ -74,66 +105,14 @@ export default function MyFundsSummary({
 
   const isPositiveGain = metrics.absoluteGain >= 0;
 
-  const MetricCard = ({
-    label,
-    value,
-    suffix = '',
-    colorKey = 'primary',
-  }: {
-    label: string;
-    value: string | number;
-    suffix?: string;
-    colorKey?: 'primary' | 'secondary' | 'success' | 'error' | 'warning' | 'info';
-  }) => {
-    const getColor = () => {
-      if (colorKey === 'primary') return 'var(--color-primary-main)';
-      if (colorKey === 'secondary') return 'var(--color-secondary-main)';
-      if (colorKey === 'success') return 'var(--color-success)';
-      if (colorKey === 'error') return 'var(--color-error)';
-      if (colorKey === 'warning') return 'var(--color-warning)';
-      return 'var(--color-info)';
-    };
-
-    return (
-      <div
-        className="rounded-lg p-6 border"
-        style={{
-          backgroundColor: "var(--color-bg-primary)",
-          borderColor: "var(--color-border-light)",
-        }}
-      >
-        <p className="text-sm font-medium mb-2" style={{ color: "var(--color-text-tertiary)" }}>
-          {label}
-        </p>
-        <p
-          className="text-3xl font-bold"
-          style={{
-            color: getColor(),
-          }}
-        >
-          {value}
-          {suffix && <span className="text-lg ml-1">{suffix}</span>}
-        </p>
-      </div>
-    );
-  };
-
   if (loading) {
     return (
-      <div className="text-center py-8">
-        <div 
-          className="inline-block animate-spin rounded-full h-8 w-8 border-b-2"
-          style={{ borderColor: 'var(--color-primary-main)' }}
-        />
-        <p className="mt-3" style={{ color: "var(--color-text-secondary)"}}>
-          Calculating your portfolio metrics...
-        </p>
-      </div>
+      <Loader message='Calculating your portfolio summary...' />
     );
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-2">
       <MetricCard
         label="Total Invested"
         value={`₹${metrics.totalInvested.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`}
@@ -160,9 +139,11 @@ export default function MyFundsSummary({
       />
 
       <MetricCard
-        label="Number of Funds"
-        value={metrics.numberOfFunds}
+        label="XIRR"
+        value={metrics.xirr.toFixed(2)}
+        suffix="%"
         colorKey="warning"
+        subtext="Extended Internal Rate of Return"
       />
 
       <MetricCard
@@ -170,6 +151,7 @@ export default function MyFundsSummary({
         value={metrics.cagr.toFixed(2)}
         suffix="%"
         colorKey="info"
+        subtext="Compound Annual Growth Rate"
       />
     </div>
   );

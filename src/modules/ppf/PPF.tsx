@@ -1,8 +1,17 @@
+import { useState } from 'react';
 import PPFForm from './components/PPFForm';
+import PPFReturnsSummary from './components/PPFReturnsSummary';
+import FYSummaryTable from '../../components/common/FYSummaryTable';
 import Header from '../../components/common/Header';
+import type { PPFCalculationResult } from './types/ppf';
+import { generateFinancialYearData } from './utils/ppfCalculator';
 
 const PPF = () => {
+    const [result, setResult] = useState<PPFCalculationResult | null>(null);
 
+    const handleCalculate = (calculationResult: PPFCalculationResult) => {
+        setResult(calculationResult);
+    };
 
     return (
         <div className="min-h-screen" style={{ backgroundColor: 'var(--color-bg-secondary)' }}>
@@ -27,8 +36,23 @@ const PPF = () => {
 
                 {/* Form Section */}
                 <section className="mb-12">
-                    <PPFForm />
+                    <PPFForm onCalculate={handleCalculate} />
                 </section>
+
+                {/* Results Section */}
+                {result && (
+                    <>
+                        {/* Returns Summary */}
+                        <section className="mb-12">
+                            <PPFReturnsSummary result={result} />
+                        </section>
+
+                        {/* Financial Year Breakdown */}
+                        <section className="mb-12">
+                            <FYSummaryTable data={generateFinancialYearData(result.yearlyData)} />
+                        </section>
+                    </>
+                )}
             </main>
         </div>
     );

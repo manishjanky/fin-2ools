@@ -26,12 +26,12 @@ export default function Accordion({ title, isOpen, onToggle, children }: Accordi
                   borderBottom: isAccordionOpen ? '1px solid var(--color-border-light)' : 'none',
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = 'var(--color-primary-main)';
-                  e.currentTarget.style.opacity = '0.1';
+                  e.currentTarget.style.backgroundColor = 'var(--color-bg-primary)';
+                 // e.currentTarget.style.opacity = '0.1';
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.backgroundColor = 'transparent';
-                  e.currentTarget.style.opacity = '1';
+                  // e.currentTarget.style.opacity = '1';
                 }}
             >
                 <h3
@@ -63,7 +63,7 @@ export default function Accordion({ title, isOpen, onToggle, children }: Accordi
             {/* Accordion Content */}
             {isAccordionOpen && (
                 <div
-                  className="px-6 py-4"
+                  className="p-2"
                   style={{
                     borderTop: '1px solid var(--color-border-light)',
                     backgroundColor: 'var(--color-bg-primary)',

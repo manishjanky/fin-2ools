@@ -99,12 +99,12 @@ export default function SchemeDetails() {
     const currentNav = scheme.nav ? parseFloat(scheme.nav) : 0;
 
     return (
-        <div className="min-h-screen" style={{ backgroundColor: 'var(--color-bg-secondary)' }}>
+        <div className="min-h-screen" style={{ backgroundColor: 'var(--color-bg-primary)' }}>
             <Header />
 
-            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 mt-0">
+            <main className="max-w-7xl mx-auto px-4 py-4 mt-0">
                 {/* Scheme Header */}
-                <section className="mb-4 bg-gradient-to-br from-blue-500/10 to-cyan-500/10 border border-blue-500/30 rounded-lg p-4">
+                <section className="mb-4 border border-blue-500/30 rounded-lg p-4">
                     <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
                         <div className="flex-1">
                             <h1 className="text-2xl md:text-3xl font-bold text-white mb-4">

@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
 import type { MutualFundScheme, UserInvestmentData, NAVData } from '../types/mutual-funds';
-import { calculateInvestmentValue } from '../utils/investmentCalculations';
+import { investmentMetricSingleFund } from '../utils/investmentCalculations';
 import { fetchSchemeHistory } from '../utils/mutualFundsService';
+import AddInvestmentModal from './AddInvestmentModal';
+import { useInvestmentStore } from '../store';
 
 interface MyFundsCardProps {
   scheme: MutualFundScheme;
@@ -10,10 +12,11 @@ interface MyFundsCardProps {
 
 export default function MyFundsCard({ scheme, investmentData }: MyFundsCardProps) {
   const [navHistory, setNavHistory] = useState<NAVData[]>([]);
-  const [loading, setLoading] = useState(true);
-
+  const [, setLoading] = useState(true);
+  const [showModal, setShowModal] = useState(false);
   const navValue = scheme.nav ? parseFloat(scheme.nav).toFixed(2) : 'N/A';
-
+  const { getSchemeInvestments, addInvestment } = useInvestmentStore();
+  const [investmentDataState, setInvestmentData] = useState<UserInvestmentData>(investmentData);
   useEffect(() => {
     const loadHistory = async () => {
       try {
@@ -31,45 +34,26 @@ export default function MyFundsCard({ scheme, investmentData }: MyFundsCardProps
     loadHistory();
   }, [scheme.schemeCode]);
 
-  const investmentMetrics = (() => {
-    if (loading || navHistory.length === 0) {
-      return {
-        totalInvested: 0,
-        currentValue: 0,
-        absoluteGain: 0,
-        percentageReturn: 0,
-        units: 0,
-      };
-    }
-
-    let totalInvested = 0;
-    let totalCurrentValue = 0;
-    let totalUnits = 0;
-
-    for (const investment of investmentData.investments) {
-      const value = calculateInvestmentValue(investment, navHistory);
-      totalInvested += value.investedAmount;
-      totalCurrentValue += value.currentValue;
-      totalUnits += value.units;
-    }
-
-    const absoluteGain = totalCurrentValue - totalInvested;
-    const percentageReturn = totalInvested > 0 ? (absoluteGain / totalInvested) * 100 : 0;
-
-    return {
-      totalInvested,
-      currentValue: totalCurrentValue,
-      absoluteGain,
-      percentageReturn,
-      units: totalUnits,
-    };
-  })();
-
+  const investmentMetrics = investmentMetricSingleFund(navHistory, investmentDataState);
   const isPositive = investmentMetrics.absoluteGain >= 0;
 
+  const handleAddInvestment = (investment: any) => {
+    if (scheme.schemeCode) {
+      addInvestment(scheme.schemeCode, investment);
+      setInvestmentData(getSchemeInvestments(scheme.schemeCode));
+      setShowModal(false);
+    }
+  };
+
+
+  const addMoreInvestments = ($event: React.MouseEvent) => {
+    $event.stopPropagation();
+    setShowModal(true);
+  }
+  
   return (
     <div
-      className="rounded-lg p-6 hover:shadow-lg transition border"
+      className="rounded-lg p-4 hover:shadow-lg transition border mb-6 cursor-pointer"
       style={{
         backgroundColor: "var(--color-bg-primary)",
         borderColor: "var(--color-primary-lighter)",
@@ -81,10 +65,10 @@ export default function MyFundsCard({ scheme, investmentData }: MyFundsCardProps
         e.currentTarget.style.borderColor = "var(--color-primary-lighter)";
       }}
     >
-      <div className="grid md:grid-cols-3 gap-6 items-start">
+      <div className="grid md:grid-cols-3 gap-4 items-start">
         {/* Scheme Info */}
         <div className="md:col-span-2">
-          <h3 
+          <h3
             className="text-lg font-bold mb-2 line-clamp-2"
             style={{ color: "var(--color-text-primary)" }}
           >
@@ -115,7 +99,7 @@ export default function MyFundsCard({ scheme, investmentData }: MyFundsCardProps
 
       {/* Investment Metrics */}
       <div
-        className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6 pt-6 border-t"
+        className="grid grid-cols-2 md:grid-cols-5 gap-4 mt-4 pt-4 border-t"
         style={{ borderColor: "var(--color-border-light)" }}
       >
         <div>
@@ -162,23 +146,47 @@ export default function MyFundsCard({ scheme, investmentData }: MyFundsCardProps
             {investmentMetrics.percentageReturn.toFixed(2)}%
           </p>
         </div>
+        <div>
+          <p className="text-xs mb-1" style={{ color: "var(--color-text-tertiary)" }}>
+            Units Held
+          </p>
+          <p
+            className="text-lg font-semibold"
+            style={{ color: "var(--color-secondary-main)" }}
+          >
+            {investmentMetrics.units?.toFixed(4)}
+          </p>
+        </div>
       </div>
 
-      {/* Units Held */}
-      <div
-        className="mt-4 pt-4 border-t"
-        style={{ borderColor: "var(--color-border-light)" }}
-      >
-        <p className="text-xs mb-1" style={{ color: "var(--color-text-tertiary)" }}>
-          Units Held
-        </p>
-        <p 
-          className="text-lg font-semibold"
-          style={{ color: "var(--color-secondary-main)" }}
+
+      <section className="mt-4 border-t pt-4" style={{
+        borderColor: "var(--color-border-light)"
+      }}>
+        <button
+          onClick={addMoreInvestments}
+          className="px-6 py-3 rounded-lg transition font-medium"
+          style={{
+            backgroundColor: 'var(--color-primary-main)',
+            color: 'var(--color-text-inverse)',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = 'var(--color-primary-dark)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = 'var(--color-primary-main)';
+          }}
         >
-          {investmentMetrics.units.toFixed(4)}
-        </p>
-      </div>
+          + Add More Investment
+        </button>
+      </section>
+      <AddInvestmentModal
+        isOpen={showModal}
+        onClose={() => setShowModal(false)}
+        onSubmit={handleAddInvestment}
+        schemeName={scheme.schemeName}
+        schemeCode={scheme.schemeCode}
+      />
     </div>
   );
 }

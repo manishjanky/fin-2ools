@@ -8,7 +8,7 @@ export default function Home() {
 
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: 'var(--color-bg-secondary)' }}>
+    <div className="min-h-screen" style={{ backgroundColor: 'var(--color-bg-primary)' }}>
       <Header />
 
       {/* Main Content */}

@@ -58,6 +58,12 @@ export default function FYSummaryTable({ data }: FYSummaryTableProps) {
                 className="px-6 py-4 text-right font-semibold"
                 style={{ color: 'var(--color-text-secondary)' }}
               >
+                Amount Invested
+              </th>
+              <th
+                className="px-6 py-4 text-right font-semibold"
+                style={{ color: 'var(--color-text-secondary)' }}
+              >
                 Interest Earned
               </th>
               <th
@@ -94,6 +100,15 @@ export default function FYSummaryTable({ data }: FYSummaryTableProps) {
                   style={{ color: 'var(--color-accent-cyan)' }}
                 >
                   ₹{row.startBalance.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+                </td>
+                <td
+                  className="px-6 py-4 text-right font-semibold"
+                  style={{ color: 'var(--color-secondary-main)' }}
+                >
+                  {row.contribution !== undefined && row.contribution > 0
+                    ? `₹${row.contribution.toLocaleString('en-IN', { maximumFractionDigits: 2 })}`
+                    : '-'
+                  }
                 </td>
                 <td
                   className="px-6 py-4 text-right font-semibold"

@@ -50,14 +50,22 @@ export interface ReturnsMetrics {
   isAvailable: boolean;
 }
 
+// Track SIP amount modifications with effective dates
+export interface SIPAmountModification {
+  effectiveDate: string; // Date from which new amount applies
+  amount: number; // New SIP amount from this date
+}
+
 // New types for user investments
 export interface UserInvestment {
   schemeCode: number;
   investmentType: 'lumpsum' | 'sip';
   startDate: string;
   amount: number;
-  sipMonths?: number; // For SIP: number of months to continue
-  sipAmount?: number; // For SIP: monthly investment amount
+  sipAmount?: number; // For SIP: monthly investment amount (original amount)
+  sipMonthlyDate?: number; // For SIP: day of month (1-31) when SIP is deducted
+  sipEndDate?: string; // For SIP: end date (if cancelled) - if not provided, SIP is active
+  sipAmountModifications?: SIPAmountModification[]; // Track all SIP amount changes with effective dates
 }
 
 export interface UserInvestmentData {
@@ -70,7 +78,27 @@ export interface InvestmentMetrics {
   currentValue: number;
   absoluteGain: number;
   percentageReturn: number;
-  xirr: number;
-  cagr: number;
-  numberOfFunds: number;
+  xirr?: number;
+  cagr?: number;
+  numberOfFunds?: number;
+  units?: number;
 }
+
+export interface InvestmentInstallment {
+  id: string;
+  type: 'lumpsum' | 'sip-installment';
+  originalStartDate: string;
+  installmentDate: string;
+  amount: number;
+  nav: number;
+  units: number;
+  isCancelled: boolean;
+  cancelledOn?: string;
+}
+
+export interface FundInvestmentDetails {
+  scheme: MutualFundScheme;
+  installments: InvestmentInstallment[];
+  summary: InvestmentMetrics;
+}
+

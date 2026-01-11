@@ -3,7 +3,7 @@ import { lazy, Suspense, } from 'react';
 import { Navigate, Outlet, ScrollRestoration, createBrowserRouter } from 'react-router';
 import Home from './modules/Home';
 import './App.css';
-import PageLoader from './components/common/PageLoader';
+import Loader from './components/common/Loader';
 import Footer from './components/common/Footer';
 
 // Lazy load FD and Mutual Funds pages for code splitting
@@ -11,6 +11,7 @@ const FD = lazy(() => import('./modules/fd/FD'));
 const MutualFunds = lazy(() => import('./modules/mutual-funds/MutualFunds'));
 const SchemeDetails = lazy(() => import('./modules/mutual-funds/SchemeDetails'));
 const MyFunds = lazy(() => import('./modules/mutual-funds/MyFunds'));
+const FundInvestmentDetails = lazy(() => import('./modules/mutual-funds/components/FundInvestmentDetails'));
 const PPF = lazy(() => import('./modules/ppf/PPF'));
 
 const Layout = () => {
@@ -40,7 +41,7 @@ const routes = [
             {
                 path: "fd",
                 element: (
-                    <Suspense fallback={<PageLoader />}>
+                    <Suspense fallback={<Loader fullHeight={true}/>}>
                         <FD />
                     </Suspense>
                 ),
@@ -51,7 +52,7 @@ const routes = [
                     {
                         index: true,
                         element: (
-                            <Suspense fallback={<PageLoader />}>
+                            <Suspense fallback={<Loader fullHeight={true}/>}>
                                 <MutualFunds />
                             </Suspense>
                         ),
@@ -59,7 +60,7 @@ const routes = [
                     {
                         path: "explore-funds",
                         element: (
-                            <Suspense fallback={<PageLoader />}>
+                            <Suspense fallback={<Loader fullHeight={true}/>}>
                                 <MutualFunds />
                             </Suspense>
                         ),
@@ -70,18 +71,25 @@ const routes = [
                             {
                                 index: true,
                                 element: (
-                                    <Suspense fallback={<PageLoader />}>
+                                    <Suspense fallback={<Loader fullHeight={true}/>}>
                                         <MyFunds />
                                     </Suspense>
                                 ),
                             },
-
+                            {
+                                path: "investment/:schemeCode",
+                                element: (
+                                    <Suspense fallback={<Loader fullHeight={true}/>}>
+                                        <FundInvestmentDetails />
+                                    </Suspense>
+                                ),
+                            },
                         ],
                     },
                     {
                         path: "scheme/:schemeCode",
                         element: (
-                            <Suspense fallback={<PageLoader />}>
+                            <Suspense fallback={<Loader fullHeight={true}/>}>
                                 <SchemeDetails />
                             </Suspense>
                         ),
@@ -90,7 +98,7 @@ const routes = [
             }, {
                 path: "ppf",
                 element: (
-                    <Suspense fallback={<PageLoader />}>
+                    <Suspense fallback={<Loader fullHeight={true} />}>
                         <PPF />
                     </Suspense>
                 ),

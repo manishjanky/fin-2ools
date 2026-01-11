@@ -28,7 +28,7 @@ export default function MutualFundCard({ scheme }: MutualFundCardProps) {
             <div
                 className="rounded-lg p-4 hover:shadow-lg transition transform hover:scale-105 h-full border cursor-pointer"
                 style={{
-                    backgroundColor: "var(--color-bg-primary)",
+                    backgroundColor: "var(--color-bg-secondary)",
                     borderColor: "var(--color-primary-lighter)",
                 }}
                 onMouseEnter={(e) => {
@@ -82,23 +82,25 @@ export default function MutualFundCard({ scheme }: MutualFundCardProps) {
 
                     </div>
 
-                    {/* Button */}
-                    <button
-                        onClick={addToMyFunds}
-                        className="w-full mt-4 px-4 py-2 rounded-lg transition font-medium text-sm"
-                        style={{
-                            backgroundColor: 'var(--color-primary-main)',
-                            color: "var(--color-text-inverse)",
-                        }}
-                        onMouseEnter={(e) => {
-                            e.currentTarget.style.backgroundColor = "var(--color-primary-dark)";
-                        }}
-                        onMouseLeave={(e) => {
-                            e.currentTarget.style.backgroundColor = 'var(--color-primary-main)';
-                        }}
-                    >
-                        + Add to My Funds
-                    </button>
+                    <div className='flex justify-end'>
+                        <button
+                            onClick={addToMyFunds}
+                            className=" w-full md:w-auto mt-4 px-4 py-2 rounded-lg transition font-medium text-sm"
+                            style={{
+                                backgroundColor: 'var(--color-primary-main)',
+                                color: "var(--color-text-inverse)",
+                            }}
+                            onMouseEnter={(e) => {
+                                e.currentTarget.style.backgroundColor = "var(--color-primary-dark)";
+                            }}
+                            onMouseLeave={(e) => {
+                                e.currentTarget.style.backgroundColor = 'var(--color-primary-main)';
+                            }}
+                        >
+                            + Add to My Funds
+                        </button>
+                    </div>
+
                 </div>
             </div>
 

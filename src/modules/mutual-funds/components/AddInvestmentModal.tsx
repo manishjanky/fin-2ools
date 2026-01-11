@@ -1,5 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import moment from 'moment';
 import type { UserInvestment } from '../types/mutual-funds';
+import Modal from '../../../components/common/Modal';
 
 interface AddInvestmentModalProps {
   isOpen: boolean;
@@ -7,6 +9,8 @@ interface AddInvestmentModalProps {
   onSubmit: (investment: UserInvestment) => void;
   schemeName: string;
   schemeCode: number;
+  editingInvestment?: UserInvestment; // For editing existing SIP
+  mode?: 'add' | 'edit'; // Mode of operation
 }
 
 export default function AddInvestmentModal({
@@ -15,12 +19,35 @@ export default function AddInvestmentModal({
   onSubmit,
   schemeName,
   schemeCode,
+  editingInvestment,
+  mode = 'add',
 }: AddInvestmentModalProps) {
   const [investmentType, setInvestmentType] = useState<'lumpsum' | 'sip'>('lumpsum');
   const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
   const [amount, setAmount] = useState('');
-  const [sipMonths, setSipMonths] = useState('12');
   const [sipAmount, setSipAmount] = useState('');
+  const [sipMonthlyDate, setSipMonthlyDate] = useState('1');
+  const [sipCancelled, setSipCancelled] = useState(false);
+  const [sipEndDate, setSipEndDate] = useState('');
+  const [sipAmountChangeDate, setSipAmountChangeDate] = useState(new Date().toISOString().split('T')[0]);
+  const [isChangingAmount, setIsChangingAmount] = useState(false);
+
+  // Initialize form when editing
+  useEffect(() => {
+    if (mode === 'edit' && editingInvestment) {
+      setInvestmentType(editingInvestment.investmentType);
+      setStartDate(editingInvestment.startDate);
+      setAmount(editingInvestment.amount.toString());
+      setSipAmount(editingInvestment.sipAmount?.toString() || '');
+      setSipMonthlyDate(editingInvestment.sipMonthlyDate?.toString() || '1');
+      setSipCancelled(!!editingInvestment.sipEndDate);
+      setSipEndDate(editingInvestment.sipEndDate || '');
+      setSipAmountChangeDate(new Date().toISOString().split('T')[0]);
+      setIsChangingAmount(false);
+    } else {
+      resetForm();
+    }
+  }, [isOpen, mode, editingInvestment]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,14 +57,67 @@ export default function AddInvestmentModal({
       return;
     }
 
-    const investment: UserInvestment = {
+    if (investmentType === 'sip' && sipCancelled && !sipEndDate) {
+      alert('Please provide SIP end date if SIP is cancelled');
+      return;
+    }
+
+    // For edit mode with SIP amount change, validate effective date
+    if (isEditMode && investmentType === 'sip' && isChangingAmount && !sipAmountChangeDate) {
+      alert('Please provide effective date for SIP amount change');
+      return;
+    }
+
+    let investment: UserInvestment = {
       schemeCode,
       investmentType,
       startDate,
       amount: investmentType === 'lumpsum' ? parseFloat(amount) : 0,
       sipAmount: investmentType === 'sip' ? parseFloat(sipAmount) : undefined,
-      sipMonths: investmentType === 'sip' ? parseInt(sipMonths) : undefined,
+      sipMonthlyDate: investmentType === 'sip' ? parseInt(sipMonthlyDate) : undefined,
+      sipEndDate: investmentType === 'sip' && sipCancelled ? sipEndDate : undefined,
     };
+
+    // Handle SIP amount modification with effective date (past or future)
+    if (isEditMode && investmentType === 'sip' && isChangingAmount && editingInvestment) {
+      const newAmount = parseFloat(sipAmount);
+      const oldAmount = editingInvestment.sipAmount || 0;
+
+      // Validate effective date is not before SIP start date
+      const effectiveDate = moment(sipAmountChangeDate);
+      const sipStartDate = moment(editingInvestment.startDate);
+
+      if (effectiveDate.isBefore(sipStartDate)) {
+        alert(`Effective date cannot be before SIP start date (${sipStartDate.format('DD-MMM-YYYY')})`);
+        return;
+      }
+
+      // Only add modification if amount actually changed
+      if (newAmount !== oldAmount) {
+        const modifications = editingInvestment.sipAmountModifications || [];
+
+        // Check if modification for this date already exists
+        const existingModIndex = modifications.findIndex(
+          m => m.effectiveDate === sipAmountChangeDate
+        );
+
+        if (existingModIndex >= 0) {
+          modifications[existingModIndex].amount = newAmount;
+        } else {
+          modifications.push({
+            effectiveDate: sipAmountChangeDate,
+            amount: newAmount,
+          });
+        }
+
+        // Sort modifications by effective date
+        modifications.sort((a, b) =>
+          new Date(a.effectiveDate).getTime() - new Date(b.effectiveDate).getTime()
+        );
+
+        investment.sipAmountModifications = modifications;
+      }
+    }
 
     onSubmit(investment);
     resetForm();
@@ -47,45 +127,45 @@ export default function AddInvestmentModal({
     setInvestmentType('lumpsum');
     setStartDate(new Date().toISOString().split('T')[0]);
     setAmount('');
-    setSipMonths('12');
     setSipAmount('');
+    setSipMonthlyDate('1');
+    setSipCancelled(false);
+    setSipEndDate('');
+    setSipAmountChangeDate(new Date().toISOString().split('T')[0]);
+    setIsChangingAmount(false);
   };
 
   if (!isOpen) return null;
 
+  const isEditMode = mode === 'edit';
+  const modalTitle = isEditMode ? 'Edit SIP Investment' : 'Add Investment';
+  const submitButtonText = isEditMode ? 'Update Investment' : 'Add Investment';
+
   return (
-    <div
-      className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-      style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
-      onClick={($event) => $event.stopPropagation()}
-    >
-      <div
-        className="rounded-lg p-8 max-w-md w-full border"
-        style={{
-          backgroundColor: 'var(--color-bg-primary)',
-          borderColor: 'var(--color-primary-main)',
-          color: 'var(--color-text-primary)',
-        }}
-      >
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold" style={{ color: 'var(--color-text-primary)' }}>
-            Add Investment
-          </h2>
-          <button
-            onClick={onClose}
-            className="transition text-2xl hover:opacity-70"
-            style={{ color: 'var(--color-primary-main)' }}
-          >
-            ×
-          </button>
+    <Modal onClose={onClose}>
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-2xl font-bold" style={{ color: 'var(--color-text-primary)' }}>
+          {modalTitle}
+        </h2>
+      </div>
+
+      <p className="text-sm mb-4" style={{ color: "var(--color-text-secondary)" }}>
+        {schemeName}
+      </p>
+
+      {isEditMode && editingInvestment && (
+        <div className="mb-6 p-3 rounded-lg" style={{ backgroundColor: 'var(--color-bg-secondary)' }}>
+          <p className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>
+            Investment started on: <span className="font-semibold" style={{ color: 'var(--color-text-primary)' }}>
+              {new Date(editingInvestment.startDate).toLocaleDateString('en-IN')}
+            </span>
+          </p>
         </div>
+      )}
 
-        <p className="text-sm mb-4" style={{ color: "var(--color-text-secondary)" }}>
-          {schemeName}
-        </p>
-
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Investment Type */}
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Investment Type - Only show in add mode */}
+        {!isEditMode && (
           <div className="space-y-3">
             <label className="block font-medium" style={{ color: "var(--color-text-secondary)" }}>
               Investment Type
@@ -115,16 +195,48 @@ export default function AddInvestmentModal({
               </label>
             </div>
           </div>
+        )}
 
-          {/* Start Date */}
+        {/* Start Date - Read-only in edit mode */}
+        <div>
+          <label className="block font-medium mb-2" style={{ color: "var(--color-text-secondary)" }}>
+            {investmentType === 'lumpsum' ? 'Investment' : 'SIP Start'} Date
+          </label>
+          <input
+            type="date"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+            disabled={isEditMode}
+            className="w-full rounded-lg px-4 py-2 transition border"
+            style={{
+              backgroundColor: "var(--color-bg-secondary)",
+              borderColor: "var(--color-border-main)",
+              color: "var(--color-text-primary)",
+              opacity: isEditMode ? 0.6 : 1,
+              cursor: isEditMode ? 'not-allowed' : 'auto',
+            }}
+            onFocus={(e) => {
+              if (!isEditMode) e.currentTarget.style.borderColor = 'var(--color-primary-main)';
+            }}
+            onBlur={(e) => {
+              e.currentTarget.style.borderColor = 'var(--color-border-main)';
+            }}
+          />
+        </div>
+
+        {/* Lump Sum Amount */}
+        {investmentType === 'lumpsum' && (
           <div>
             <label className="block font-medium mb-2" style={{ color: "var(--color-text-secondary)" }}>
-              Start Date
+              Investment Amount (₹)
             </label>
             <input
-              type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
+              type="number"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              placeholder="Enter amount"
+              min="0"
+              step="0.01"
               className="w-full rounded-lg px-4 py-2 transition border"
               style={{
                 backgroundColor: "var(--color-bg-secondary)",
@@ -139,18 +251,20 @@ export default function AddInvestmentModal({
               }}
             />
           </div>
+        )}
 
-          {/* Lump Sum Amount */}
-          {investmentType === 'lumpsum' && (
+        {/* SIP Details */}
+        {investmentType === 'sip' && (
+          <>
             <div>
               <label className="block font-medium mb-2" style={{ color: "var(--color-text-secondary)" }}>
-                Investment Amount (₹)
+                Monthly Investment Amount (₹)
               </label>
               <input
                 type="number"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                placeholder="Enter amount"
+                value={sipAmount}
+                onChange={(e) => setSipAmount(e.target.value)}
+                placeholder="Enter monthly amount"
                 min="0"
                 step="0.01"
                 className="w-full rounded-lg px-4 py-2 transition border"
@@ -167,46 +281,108 @@ export default function AddInvestmentModal({
                 }}
               />
             </div>
-          )}
 
-          {/* SIP Details */}
-          {investmentType === 'sip' && (
-            <>
+            {/* Monthly Date - Only show in add mode or when editing */}
+            {!isEditMode && (
               <div>
                 <label className="block font-medium mb-2" style={{ color: "var(--color-text-secondary)" }}>
-                  Monthly Investment Amount (₹)
+                  Investment Date (Day of Month)
                 </label>
                 <input
                   type="number"
-                  value={sipAmount}
-                  onChange={(e) => setSipAmount(e.target.value)}
-                  placeholder="Enter monthly amount"
-                  min="0"
-                  step="0.01"
-                  className="w-full rounded-lg px-4 py-2 transition border"
-                  style={{
-                    backgroundColor: "var(--color-bg-secondary)",
-                    borderColor: "var(--color-border-main)",
-                    color: "var(--color-text-primary)",
+                  value={sipMonthlyDate}
+                  onChange={(e) => {
+                    const val = Math.min(31, Math.max(1, parseInt(e.target.value) || 1));
+                    setSipMonthlyDate(val.toString());
                   }}
-                  onFocus={(e) => {
-                    e.currentTarget.style.borderColor = 'var(--color-primary-main)';
-                  }}
-                  onBlur={(e) => {
-                    e.currentTarget.style.borderColor = 'var(--color-border-main)';
-                  }}
-                />
-              </div>
-              <div>
-                <label className="block font-medium mb-2" style={{ color: "var(--color-text-secondary)" }}>
-                  Duration (Months)
-                </label>
-                <input
-                  type="number"
-                  value={sipMonths}
-                  onChange={(e) => setSipMonths(e.target.value)}
-                  placeholder="Enter number of months"
+                  placeholder="Enter day of month (1-31)"
                   min="1"
+                  max="31"
+                  className="w-full rounded-lg px-4 py-2 transition border"
+                  style={{
+                    backgroundColor: "var(--color-bg-secondary)",
+                    borderColor: "var(--color-border-main)",
+                    color: "var(--color-text-primary)",
+                  }}
+                  onFocus={(e) => {
+                    e.currentTarget.style.borderColor = 'var(--color-primary-main)';
+                  }}
+                  onBlur={(e) => {
+                    e.currentTarget.style.borderColor = 'var(--color-border-main)';
+                  }}
+                />
+                <p className="text-xs mt-1" style={{ color: "var(--color-text-tertiary)" }}>
+                  Your SIP will be deducted on the {sipMonthlyDate === '1' ? '1st' : sipMonthlyDate === '2' ? '2nd' : sipMonthlyDate === '3' ? '3rd' : sipMonthlyDate + 'th'} of every month
+                </p>
+              </div>
+            )}
+
+
+
+
+
+            {/* Effective Date for Amount Change - Only show when checkbox is checked */}
+            {isEditMode && (
+              <div>
+                <label className="block font-medium mb-2" style={{ color: "var(--color-text-secondary)" }}>
+                  Effective Date for New Amount
+                </label>
+                <input
+                  type="date"
+                  value={sipAmountChangeDate}
+                  onChange={(e) => setSipAmountChangeDate(e.target.value)}
+                  className="w-full rounded-lg px-4 py-2 transition border"
+                  style={{
+                    backgroundColor: "var(--color-bg-secondary)",
+                    borderColor: "var(--color-border-main)",
+                    color: "var(--color-text-primary)",
+                  }}
+                  onFocus={(e) => {
+                    e.currentTarget.style.borderColor = 'var(--color-primary-main)';
+                  }}
+                  onBlur={(e) => {
+                    e.currentTarget.style.borderColor = 'var(--color-border-main)';
+                  }}
+                />
+                <p className="text-xs mt-2" style={{ color: "var(--color-text-secondary)" }}>
+                  Select a date from the past or future when this amount change takes effect
+                </p>
+                {editingInvestment && (
+                  <>
+                    <p className="text-xs mt-1" style={{ color: "var(--color-text-tertiary)" }}>
+                      SIP started on: {new Date(editingInvestment.startDate).toLocaleDateString('en-IN')}
+                    </p>
+                    <p className="text-xs mt-2" style={{ color: "var(--color-text-secondary)" }}>
+                      <strong>Preview:</strong> Current Amount: ₹{editingInvestment?.sipAmount || 0} | New Amount: ₹{sipAmount || 0}
+                      <br />
+                      Change applies from {new Date(sipAmountChangeDate).toLocaleDateString('en-IN')}
+                    </p>
+                  </>
+                )}
+              </div>
+            )}
+
+            <div>
+              <label className="flex items-center cursor-pointer" style={{ color: "var(--color-text-secondary)" }}>
+                <input
+                  type="checkbox"
+                  checked={sipCancelled}
+                  onChange={(e) => setSipCancelled(e.target.checked)}
+                  className="w-4 h-4 mr-2"
+                  style={{ accentColor: 'var(--color-primary-main)' }}
+                />
+                <span className="font-medium">{isEditMode ? 'Cancel SIP' : 'SIP is Cancelled'}</span>
+              </label>
+            </div>
+            {sipCancelled && (
+              <div>
+                <label className="block font-medium mb-2" style={{ color: "var(--color-text-secondary)" }}>
+                  {isEditMode ? 'Cancellation Date' : 'SIP End Date'}
+                </label>
+                <input
+                  type="date"
+                  value={sipEndDate}
+                  onChange={(e) => setSipEndDate(e.target.value)}
                   className="w-full rounded-lg px-4 py-2 transition border"
                   style={{
                     backgroundColor: "var(--color-bg-secondary)",
@@ -221,47 +397,47 @@ export default function AddInvestmentModal({
                   }}
                 />
               </div>
-            </>
-          )}
+            )}
+          </>
+        )}
 
-          {/* Buttons */}
-          <div className="flex gap-3 pt-4">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 px-4 py-2 rounded-lg transition font-medium"
-              style={{
-                backgroundColor: "var(--color-bg-secondary)",
-                color: "var(--color-text-secondary)",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = "var(--color-bg-tertiary)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = "var(--color-bg-secondary)";
-              }}
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="flex-1 px-4 py-2 rounded-lg transition font-medium"
-              style={{
-                backgroundColor: 'var(--color-primary-main)',
-                color: "var(--color-text-inverse)",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = "var(--color-primary-dark)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = 'var(--color-primary-main)';
-              }}
-            >
-              Add Investment
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+        {/* Buttons */}
+        <div className="flex gap-3 pt-4">
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex-1 px-4 py-2 rounded-lg transition font-medium"
+            style={{
+              backgroundColor: "var(--color-bg-secondary)",
+              color: "var(--color-text-secondary)",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = "var(--color-bg-tertiary)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = "var(--color-bg-secondary)";
+            }}
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            className="flex-1 px-4 py-2 rounded-lg transition font-medium"
+            style={{
+              backgroundColor: 'var(--color-primary-main)',
+              color: "var(--color-text-inverse)",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = "var(--color-primary-dark)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = 'var(--color-primary-main)';
+            }}
+          >
+            {submitButtonText}
+          </button>
+        </div>
+      </form>
+    </Modal>
   );
 }

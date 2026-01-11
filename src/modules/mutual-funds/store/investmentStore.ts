@@ -9,7 +9,7 @@ interface InvestmentStore {
   getAllInvestments: () => UserInvestmentData[];
   addInvestment: (schemeCode: number, investment: any) => void;
   removeInvestment: (schemeCode: number, investmentIndex: number) => void;
-  getSchemeInvestments: (schemeCode: number) => UserInvestmentData | null;
+  getSchemeInvestments: (schemeCode: number) => UserInvestmentData;
 }
 
 export const useInvestmentStore = create<InvestmentStore>((set, get) => ({
@@ -38,7 +38,7 @@ export const useInvestmentStore = create<InvestmentStore>((set, get) => ({
     get().loadInvestments();
   },
 
-  getSchemeInvestments: (schemeCode: number) => {
-    return localStorageService.getSchemeInvestments(schemeCode);
+  getSchemeInvestments: (schemeCode: number): UserInvestmentData => {
+    return localStorageService.getSchemeInvestments(schemeCode)||{ schemeCode, investments: []};
   },
 }));

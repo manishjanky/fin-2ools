@@ -13,19 +13,6 @@ export const calculateCAGR = (
   return (Math.pow(endNav / startNav, 1 / years) - 1) * 100;
 };
 
-// Helper function to calculate XIRR (Extended Internal Rate of Return)
-// For single lump sum investments (no periodic cash flows), XIRR = CAGR
-// XIRR accounts for the timing of cash flows and returns an annualized percentage
-export const calculateXIRR = (
-  startNav: number,
-  endNav: number,
-  days: number
-): number => {
-  const years = days / 365.25; // Using 365.25 for more accurate annual calculation
-  if (startNav <= 0 || years <= 0) return 0;
-  // For single investment NAV data: XIRR ≈ (Ending NAV / Starting NAV) ^ (365.25 / days) - 1
-  return (Math.pow(endNav / startNav, 365.25 / days) - 1) * 100;
-};
 
 /**
  * @summary Calculates returns metrics for a mutual fund scheme over predefined timeframes.
