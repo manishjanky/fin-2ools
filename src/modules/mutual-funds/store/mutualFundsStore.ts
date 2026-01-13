@@ -1,6 +1,6 @@
 import { create } from 'zustand';
-import type { MutualFundScheme, SearchResult } from '../types/mutual-funds';
-import { fetchLatestNAV, searchMutualFunds } from '../utils/mutualFundsService';
+import type { MutualFundScheme, SearchResult, SchemeHistoryResponse } from '../types/mutual-funds';
+import { fetchLatestNAV, searchMutualFunds, fetchSchemeHistory, fetchSchemeDetails } from '../utils/mutualFundsService';
 
 interface MutualFundsStore {
   // State
@@ -12,6 +12,9 @@ interface MutualFundsStore {
   error: string | null;
   hasLoaded: boolean;
   searchResults: Map<string, SearchResult[]>;
+  schemeHistoryCache: Map<string, SchemeHistoryResponse>;
+  schemeDetailsCache: Map<number, MutualFundScheme>;
+  inFlightRequests: Map<string, Promise<any>>;
 
   // Actions
   loadSchemes: () => Promise<void>;
@@ -20,6 +23,8 @@ interface MutualFundsStore {
   setCurrentPage: (page: number) => void;
   resetSearch: () => void;
   setError: (error: string | null) => void;
+  getOrFetchSchemeHistory: (schemeCode: number, days: number) => Promise<SchemeHistoryResponse>;
+  getOrFetchSchemeDetails: (schemeCode: number) => Promise<MutualFundScheme>;
 }
 
 export const useMutualFundsStore = create<MutualFundsStore>((set, get) => ({
@@ -32,6 +37,9 @@ export const useMutualFundsStore = create<MutualFundsStore>((set, get) => ({
   error: null,
   hasLoaded: false,
   searchResults: new Map(),
+  schemeHistoryCache: new Map(),
+  schemeDetailsCache: new Map(),
+  inFlightRequests: new Map(),
 
   // Load all schemes
   loadSchemes: async () => {
@@ -159,4 +167,116 @@ export const useMutualFundsStore = create<MutualFundsStore>((set, get) => ({
   setError: (error: string | null) => {
     set({ error });
   },
-}));
+
+  // Get or fetch scheme history with caching and deduplication
+  getOrFetchSchemeHistory: async (schemeCode: number, days: number) => {
+    const { schemeHistoryCache, inFlightRequests } = get();
+    const cacheKey = `${schemeCode}-${days}`;
+
+    // Return cached data if available
+    if (schemeHistoryCache.has(cacheKey)) {
+      return schemeHistoryCache.get(cacheKey)!;
+    }
+
+    // If request is already in-flight, return the pending promise
+    if (inFlightRequests.has(cacheKey)) {
+      return inFlightRequests.get(cacheKey)!;
+    }
+
+    // Make the API call
+    const promise = fetchSchemeHistory(schemeCode, days);
+    
+    // Track this request as in-flight
+    set((state) => {
+      const newInFlightRequests = new Map(state.inFlightRequests);
+      newInFlightRequests.set(cacheKey, promise);
+      return { inFlightRequests: newInFlightRequests };
+    });
+
+    try {
+      const data = await promise;
+      
+      // Cache the result only if data is not null
+      if (data) {
+        set((state) => {
+          const newCache = new Map(state.schemeHistoryCache);
+          newCache.set(cacheKey, data);
+          return { schemeHistoryCache: newCache };
+        });
+      }
+
+      // Remove from in-flight
+      set((state) => {
+        const newInFlightRequests = new Map(state.inFlightRequests);
+        newInFlightRequests.delete(cacheKey);
+        return { inFlightRequests: newInFlightRequests };
+      });
+
+      return data;
+    } catch (error) {
+      // Remove from in-flight on error
+      set((state) => {
+        const newInFlightRequests = new Map(state.inFlightRequests);
+        newInFlightRequests.delete(cacheKey);
+        return { inFlightRequests: newInFlightRequests };
+      });
+      throw error;
+    }
+  },
+
+  // Get or fetch scheme details with caching and deduplication
+  getOrFetchSchemeDetails: async (schemeCode: number) => {
+    const { schemeDetailsCache, inFlightRequests } = get();
+    const cacheKey = `details-${schemeCode}`;
+
+    // Return cached data if available
+    if (schemeDetailsCache.has(schemeCode)) {
+      return schemeDetailsCache.get(schemeCode)!;
+    }
+
+    // If request is already in-flight, return the pending promise
+    if (inFlightRequests.has(cacheKey)) {
+      return inFlightRequests.get(cacheKey)!;
+    }
+
+    // Make the API call
+    const promise = fetchSchemeDetails(schemeCode);
+    
+    // Track this request as in-flight
+    set((state) => {
+      const newInFlightRequests = new Map(state.inFlightRequests);
+      newInFlightRequests.set(cacheKey, promise);
+      return { inFlightRequests: newInFlightRequests };
+    });
+
+    try {
+      const data = await promise;
+      
+      // Cache the result only if data is not null
+      if (data) {
+        set((state) => {
+          const newCache = new Map(state.schemeDetailsCache);
+          newCache.set(schemeCode, data);
+          return { schemeDetailsCache: newCache };
+        });
+      }
+
+      // Remove from in-flight
+      set((state) => {
+        const newInFlightRequests = new Map(state.inFlightRequests);
+        newInFlightRequests.delete(cacheKey);
+        return { inFlightRequests: newInFlightRequests };
+      });
+
+      return data;
+    } catch (error) {
+      // Remove from in-flight on error
+      set((state) => {
+        const newInFlightRequests = new Map(state.inFlightRequests);
+        newInFlightRequests.delete(cacheKey);
+        return { inFlightRequests: newInFlightRequests };
+      });
+      throw error;
+    }
+  },
+}))

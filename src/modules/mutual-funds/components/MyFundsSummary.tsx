@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import moment from 'moment';
 import type { MutualFundScheme, UserInvestmentData } from '../types/mutual-funds';
 import { calculateInvestmentValue, calculateXIRR, calculateCAGRForInvestments } from '../utils/investmentCalculations';
-import { fetchSchemeHistory } from '../utils/mutualFundsService';
+import { useMutualFundsStore } from '../store/mutualFundsStore';
 import Loader from '../../../components/common/Loader';
 import MetricCard from './MetricCard';
 
@@ -16,6 +16,9 @@ interface MyFundsSummaryProps {
 export default function MyFundsSummary({
   fundsWithDetails,
 }: MyFundsSummaryProps) {
+  const getOrFetchSchemeHistory = useMutualFundsStore(
+    (state) => state.getOrFetchSchemeHistory
+  );
   const [metrics, setMetrics] = useState({
     totalInvested: 0,
     totalCurrentValue: 0,
@@ -35,7 +38,7 @@ export default function MyFundsSummary({
         let allNavHistories = [];
 
         for (const { scheme, investmentData } of fundsWithDetails) {
-          const history = await fetchSchemeHistory(scheme.schemeCode, 365);
+          const history = await getOrFetchSchemeHistory(scheme.schemeCode, 365);
           if (!history?.data || history.data.length === 0) continue;
 
           for (const investment of investmentData.investments) {

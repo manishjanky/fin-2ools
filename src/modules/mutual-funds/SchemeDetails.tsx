@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router';
 import type { MutualFundScheme, SchemeHistoryResponse } from './types/mutual-funds';
-import { fetchSchemeDetails, fetchSchemeHistory } from './utils/mutualFundsService';
+import { useMutualFundsStore } from './store/mutualFundsStore';
 import Header from '../../components/common/Header';
 import ReturnsCalculator from './components/ReturnsCalculator';
 import moment from 'moment';
@@ -11,6 +11,7 @@ import Accordion from '../../components/common/Accordion';
 
 export default function SchemeDetails() {
     const { schemeCode } = useParams<{ schemeCode: string }>();
+    const { getOrFetchSchemeDetails, getOrFetchSchemeHistory } = useMutualFundsStore();
     const [scheme, setScheme] = useState<MutualFundScheme | null>(null);
     const [history, setHistory] = useState<SchemeHistoryResponse | null>(null);
     const [loading, setLoading] = useState(true);
@@ -26,7 +27,7 @@ export default function SchemeDetails() {
                 setError(null);
 
                 // First, fetch scheme details
-                const schemeData = await fetchSchemeDetails(parseInt(schemeCode));
+                const schemeData = await getOrFetchSchemeDetails(parseInt(schemeCode));
 
                 if (schemeData) {
                     setScheme(schemeData);
@@ -37,7 +38,7 @@ export default function SchemeDetails() {
                 }
 
                 // Then, fetch history after scheme details are loaded
-                const historyData = await fetchSchemeHistory(parseInt(schemeCode), 10);
+                const historyData = await getOrFetchSchemeHistory(parseInt(schemeCode), 10);
 
                 if (historyData) {
                     setHistory(historyData);
@@ -53,7 +54,7 @@ export default function SchemeDetails() {
         };
 
         loadData();
-    }, [schemeCode]);
+    }, [schemeCode, getOrFetchSchemeDetails, getOrFetchSchemeHistory]);
 
     if (loading) {
         return (

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { MutualFundScheme, UserInvestmentData, NAVData } from '../types/mutual-funds';
 import { investmentMetricSingleFund } from '../utils/investmentCalculations';
-import { fetchSchemeHistory } from '../utils/mutualFundsService';
+import { useMutualFundsStore } from '../store/mutualFundsStore';
 import AddInvestmentModal from './AddInvestmentModal';
 import { useInvestmentStore } from '../store';
 
@@ -11,6 +11,9 @@ interface MyFundsCardProps {
 }
 
 export default function MyFundsCard({ scheme, investmentData }: MyFundsCardProps) {
+  const getOrFetchSchemeHistory = useMutualFundsStore(
+    (state) => state.getOrFetchSchemeHistory
+  );
   const [navHistory, setNavHistory] = useState<NAVData[]>([]);
   const [, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -20,7 +23,7 @@ export default function MyFundsCard({ scheme, investmentData }: MyFundsCardProps
   useEffect(() => {
     const loadHistory = async () => {
       try {
-        const history = await fetchSchemeHistory(scheme.schemeCode, 365);
+        const history = await getOrFetchSchemeHistory(scheme.schemeCode, 365);
         if (history?.data) {
           setNavHistory(history.data);
         }
@@ -32,7 +35,7 @@ export default function MyFundsCard({ scheme, investmentData }: MyFundsCardProps
     };
 
     loadHistory();
-  }, [scheme.schemeCode]);
+  }, [scheme.schemeCode, getOrFetchSchemeHistory]);
 
   const investmentMetrics = investmentMetricSingleFund(navHistory, investmentDataState);
   const isPositive = investmentMetrics.absoluteGain >= 0;
@@ -74,11 +77,6 @@ export default function MyFundsCard({ scheme, investmentData }: MyFundsCardProps
           >
             {scheme.schemeName}
           </h3>
-          {scheme.fundHouse && (
-            <p className="text-sm mb-1" style={{ color: 'var(--color-primary-main)' }}>
-              <span className="font-semibold">AMC:</span> {scheme.fundHouse}
-            </p>
-          )}
           {scheme.schemeCategory && (
             <p className="text-xs" style={{ color: "var(--color-text-secondary)" }}>
               <span className="font-semibold">Category:</span> {scheme.schemeCategory}

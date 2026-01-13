@@ -18,11 +18,14 @@ export default function Header() {
             <button
               onClick={() => navigate('/')}
               className="flex items-center space-x-2 hover:opacity-80 transition"
+              style={{
+                backgroundColor: 'transparent'
+              }}
             >
               <div
                 className="w-10 h-10 rounded-lg flex items-center justify-center"
                 style={{
-                  background: 'linear-gradient(135deg, var(--color-primary-main), var(--color-secondary-main))',
+                  background: 'var(--color-primary-main)',
                 }}
               >
                 <span
@@ -36,7 +39,7 @@ export default function Header() {
                 className="text-lg font-bold"
                 style={{ color: 'var(--color-text-primary)' }}
               >
-                fin-tools
+                fin-2ools
               </h1>
             </button>
 

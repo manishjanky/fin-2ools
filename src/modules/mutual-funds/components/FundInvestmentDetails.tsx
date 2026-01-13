@@ -12,7 +12,7 @@ import {
   generateInvestmentInstallments,
   calculateInvestmentDuration,
 } from '../utils/investmentCalculations';
-import { fetchSchemeHistory } from '../utils/mutualFundsService';
+import { useMutualFundsStore } from '../store/mutualFundsStore';
 import { useInvestmentStore } from '../store';
 import Header from '../../../components/common/Header';
 import FundInvestmentSummary from './FundInvestmentSummary';
@@ -25,6 +25,9 @@ export default function FundInvestmentDetails() {
   const { schemeCode } = useParams<{ schemeCode: string }>();
   const navigate = useNavigate();
   const { getSchemeInvestments, addInvestment } = useInvestmentStore();
+  const getOrFetchSchemeHistory = useMutualFundsStore(
+    (state) => state.getOrFetchSchemeHistory
+  );
 
   const [scheme, setScheme] = useState<MutualFundScheme | null>(null);
   const [navHistory, setNavHistory] = useState<NAVData[]>([]);
@@ -53,7 +56,7 @@ export default function FundInvestmentDetails() {
         setInvestmentData(invData);
 
         // Fetch scheme details and history
-        const history = await fetchSchemeHistory(code, 365);
+        const history = await getOrFetchSchemeHistory(code, 365);
         if (history?.data) {
           setNavHistory(history.data);
           // Get latest NAV (most recent is at the end of array)
@@ -178,6 +181,11 @@ export default function FundInvestmentDetails() {
                 <span className="font-semibold">Category:</span> {scheme.schemeCategory}
               </p>
             )}
+            {investmentDuration > 0 && (
+              <p className="text-md font-bold" style={{ color: 'var(--color-info)' }}>
+                <span className="font-semibold">Investment Duration:</span> {investmentDuration.toFixed(1)} years
+              </p>
+            )}
           </div>
           <div className="text-right" style={{ borderColor: 'var(--color-border-light)' }}>
             <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>Current NAV</p>
@@ -188,14 +196,6 @@ export default function FundInvestmentDetails() {
               <p className="text-xs mt-1" style={{ color: 'var(--color-text-secondary)' }}>
                 As of {scheme.date}
               </p>
-            )}
-            {investmentDuration > 0 && (
-              <div className="mt-4 pt-4" style={{ borderTop: '1px solid var(--color-border-light)' }}>
-                <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>Investment Duration</p>
-                <p className="text-xl font-bold" style={{ color: 'var(--color-info)' }}>
-                  {investmentDuration.toFixed(1)} years
-                </p>
-              </div>
             )}
           </div>
 

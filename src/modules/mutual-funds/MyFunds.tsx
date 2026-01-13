@@ -4,7 +4,6 @@ import Header from '../../components/common/Header';
 import { useInvestmentStore } from './store';
 import { useMutualFundsStore } from './store/mutualFundsStore';
 import type { MutualFundScheme, UserInvestmentData } from './types/mutual-funds';
-import { fetchSchemeDetails } from './utils/mutualFundsService';
 import MyFundsCard from './components/MyFundsCard';
 import MyFundsSummary from './components/MyFundsSummary';
 import Accordion from '../../components/common/Accordion';
@@ -13,7 +12,7 @@ import Loader from '../../components/common/Loader';
 export default function MyFunds() {
   const navigate = useNavigate();
   const { loadInvestments, getAllInvestments, hasInvestments } = useInvestmentStore();
-  const { loadSchemes } = useMutualFundsStore();
+  const { loadSchemes, getOrFetchSchemeDetails } = useMutualFundsStore();
   const [fundsWithDetails, setFundsWithDetails] = useState<
     Array<{
       scheme: MutualFundScheme;
@@ -40,7 +39,7 @@ export default function MyFunds() {
       try {
         const fundDetails = await Promise.all(
           investments.map(async (investmentData) => {
-            const scheme = await fetchSchemeDetails(investmentData.schemeCode);
+            const scheme = await getOrFetchSchemeDetails(investmentData.schemeCode);
             return {
               scheme: scheme || {
                 schemeCode: investmentData.schemeCode,
@@ -59,7 +58,7 @@ export default function MyFunds() {
     };
 
     loadFundDetails();
-  }, [getAllInvestments, hasInvestments]);
+  }, [getAllInvestments, hasInvestments, getOrFetchSchemeDetails]);
 
  const handleCardClick = (schemeCode: string | number) => {
     navigate(`/mutual-funds/my-funds/investment/${schemeCode}`);
