@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { MutualFundScheme } from '../types/mutual-funds';
 import AddInvestmentModal from './AddInvestmentModal';
 import { useInvestmentStore } from '../store';
+import SchemeNAV from './SchemeNAV';
 
 interface MutualFundCardProps {
     scheme: MutualFundScheme;
@@ -11,13 +12,10 @@ export default function MutualFundCard({ scheme }: MutualFundCardProps) {
     const [showModal, setShowModal] = useState(false);
     const { addInvestment } = useInvestmentStore();
 
-    const navValue = scheme.nav ? parseFloat(scheme.nav).toFixed(2) : 'N/A';
-
     const handleAddInvestment = (investment: any) => {
         addInvestment(scheme.schemeCode, investment);
         setShowModal(false);
     };
-
     const addToMyFunds = ($event: React.MouseEvent<HTMLButtonElement>) => {
         $event.stopPropagation();
         setShowModal(true);
@@ -41,7 +39,7 @@ export default function MutualFundCard({ scheme }: MutualFundCardProps) {
                 <div className="flex flex-col h-full justify-between">
                     {/* Header: Scheme Name + NAV */}
                     <div className="mb-1">
-                        <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between lg:gap-4">
+                        <div className="flex flex-col md:flex-row lg:items-start lg:justify-between lg:gap-4">
                             <div className="flex-1">
                                 <h3
                                     className="text-lg font-bold lg:line-clamp-3"
@@ -61,22 +59,7 @@ export default function MutualFundCard({ scheme }: MutualFundCardProps) {
                                     </p>
                                 )}
                             </div>
-                            <div className="flex flex-col items-end mt-2 lg:mt-0">
-                                <span
-                                    className="text-2xl font-bold"
-                                    style={{ color: "var(--color-secondary-main)" }}
-                                >
-                                    ₹{navValue}
-                                </span>
-                                {scheme.date && (
-                                    <p
-                                        className="text-xs mt-1 font-bold"
-                                        style={{ color: "var(--color-secondary-main)" }}
-                                    >
-                                        As of {scheme.date}
-                                    </p>
-                                )}
-                            </div>
+                            <SchemeNAV scheme={scheme} />
                         </div>
 
 

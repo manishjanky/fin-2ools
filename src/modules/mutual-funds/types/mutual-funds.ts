@@ -92,7 +92,7 @@ export interface InvestmentInstallment {
   amount: number;
   nav: number;
   units: number;
-  isCancelled: boolean;
+  isCancelled?: boolean;
   cancelledOn?: string;
 }
 

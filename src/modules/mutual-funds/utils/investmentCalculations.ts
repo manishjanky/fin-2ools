@@ -4,6 +4,7 @@ import type {
   NAVData,
   InvestmentMetrics,
   UserInvestmentData,
+  InvestmentInstallment,
 } from "../types/mutual-funds";
 
 /**
@@ -376,8 +377,8 @@ const getSIPAmountForDate = (investment: UserInvestment, dateStr: string): numbe
 export const generateInvestmentInstallments = (
   investmentData: UserInvestmentData,
   navHistory: NAVData[]
-): import('../types/mutual-funds').InvestmentInstallment[] => {
-  const installments: import('../types/mutual-funds').InvestmentInstallment[] = [];
+): InvestmentInstallment[] => {
+  const installments: InvestmentInstallment[] = [];
   let installmentId = 0;
 
   for (const investment of investmentData.investments) {
@@ -400,7 +401,6 @@ export const generateInvestmentInstallments = (
           amount: investment.amount,
           nav,
           units,
-          isCancelled: false,
         });
       }
       // If investment is today or in future, don't add it to installments

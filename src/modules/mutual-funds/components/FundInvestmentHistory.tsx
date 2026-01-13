@@ -27,19 +27,16 @@ export default function FundInvestmentHistory({ installments }: { installments: 
                                 Type
                             </th>
                             <th className="px-6 py-4 text-left font-semibold" style={{ color: 'var(--color-text-secondary)' }}>
-                                Installation Date
+                                Investment Date
                             </th>
                             <th className="px-6 py-4 text-right font-semibold" style={{ color: 'var(--color-text-secondary)' }}>
                                 Amount
                             </th>
                             <th className="px-6 py-4 text-right font-semibold" style={{ color: 'var(--color-text-secondary)' }}>
-                                NAV
+                               Applicable NAV
                             </th>
                             <th className="px-6 py-4 text-right font-semibold" style={{ color: 'var(--color-text-secondary)' }}>
                                 Units
-                            </th>
-                            <th className="px-6 py-4 text-center font-semibold" style={{ color: 'var(--color-text-secondary)' }}>
-                                Status
                             </th>
                         </tr>
                     </thead>
@@ -62,16 +59,6 @@ export default function FundInvestmentHistory({ installments }: { installments: 
                                 </td>
                                 <td className="px-6 py-4 text-right font-semibold" style={{ color: 'var(--color-secondary-main)' }}>
                                     {inst.units.toFixed(4)}
-                                </td>
-                                <td className="px-6 py-4 text-center">
-                                    <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold`}
-                                        style={{
-                                            backgroundColor: inst.isCancelled ? 'var(--color-error)' : 'var(--color-status-success)',
-                                            color: 'white',
-                                        }}
-                                    >
-                                        {inst.isCancelled ? 'Cancelled' : 'Active'}
-                                    </span>
                                 </td>
                             </tr>
                         ))}

@@ -1,8 +1,7 @@
-import moment from "moment";
 import type { MutualFundScheme } from "../types/mutual-funds";
+import SchemeNAV from "./SchemeNAV";
 
 export default function FundHeader({ scheme, duration }: { scheme: MutualFundScheme; duration?: string }) {
-    const currentNav = scheme.nav ? parseFloat(scheme.nav) : 0;
 
     return (
         <section className="mb-4 border border-blue-500/30 rounded-lg p-4" >
@@ -17,6 +16,11 @@ export default function FundHeader({ scheme, duration }: { scheme: MutualFundSch
                             <span className="text-blue-400 font-semibold">Fund House:</span> {scheme.fundHouse}
                         </p>
                     )}
+                    {scheme.schemeCategory && (
+                        <p className="text-xs" style={{ color: "var(--color-text-secondary)" }}>
+                            Category: <b>{scheme.schemeCategory}</b>
+                        </p>
+                    )}
                     {
                         duration && (
                             <p className="text-blue-300 text-lg">
@@ -27,14 +31,7 @@ export default function FundHeader({ scheme, duration }: { scheme: MutualFundSch
                     }
                 </div>
 
-                {/* Latest NAV */}
-                <div className="bg-gradient-to-br from-cyan-500/20 to-blue-500/20 border border-cyan-500/50 rounded-lg p-2 text-right lg:min-w-48">
-                    <p className="text-blue-300 text-sm mb-1">Latest NAV</p>
-                    <p className="text-xl font-bold text-cyan-300 mb-1">₹{currentNav.toFixed(2)}</p>
-                    {scheme.date && (
-                        <p className="text-blue-400 text-md font-bold">As of {moment(scheme.date, 'DD-MM-YYYY').format('Do MMM YYYY')}</p>
-                    )}
-                </div>
+                <SchemeNAV scheme={scheme} />
             </div>
         </section >
     )
