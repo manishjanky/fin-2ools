@@ -1,6 +1,12 @@
+export interface PPFSingleContribution {
+  amount: number;
+  date?: string; // ISO date format: YYYY-MM-DD, defaults to April 1st of FY if not provided
+}
+
 export interface PPFContribution {
   year: number;
-  amount: number;
+  interestRate: number;
+  contributions: PPFSingleContribution[];
 }
 
 export interface PPFYearData {

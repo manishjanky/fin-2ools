@@ -55,7 +55,7 @@ export default function PPFReturnsSummary({ result }: PPFReturnsSummaryProps) {
               className="text-3xl font-bold"
               style={{ color: 'var(--color-accent-cyan)' }}
             >
-              ₹{result.totalInvested.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+              ₹{result.totalInvested.toFixed(2)}
             </p>
           </div>
 

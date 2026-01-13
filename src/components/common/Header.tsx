@@ -39,7 +39,7 @@ export default function Header() {
                 className="text-lg font-bold"
                 style={{ color: 'var(--color-text-primary)' }}
               >
-                fin-2ools
+                fin2ools
               </h1>
             </button>
 

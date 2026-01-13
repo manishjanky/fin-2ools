@@ -1,7 +1,9 @@
 import { useState } from 'react';
-import type { PPFContribution, PPFCalculationResult } from '../types/ppf';
+import type { PPFContribution, PPFCalculationResult, PPFSingleContribution } from '../types/ppf';
 import { calculatePPF } from '../utils/ppfCalculator';
-import Modal from '../../../components/common/Modal';
+import PPFFormBasics from './PPFFormBasics';
+import PPFVariableContributionsModal from './PPFVariableContributionsModal';
+import PPFContributionsSummary from './PPFContributionsSummary';
 
 interface PPFFormProps {
   onCalculate?: (result: PPFCalculationResult) => void;
@@ -10,74 +12,194 @@ interface PPFFormProps {
 const PPFForm = ({ onCalculate }: PPFFormProps) => {
   const currentYear = new Date().getFullYear();
   const PPF_MATURITY_YEARS = 15;
-  const [startYear, setStartYear] = useState(currentYear - 1);
+  const [startYear, setStartYear] = useState<number | null>(null);
   const [interestRate, setInterestRate] = useState(7.25);
   const [fixedContribution, setFixedContribution] = useState('');
+  const [firstYearContributionDate, setFirstYearContributionDate] = useState('');
   const [variablePastContributions, setVariablePastContributions] = useState(false);
-  const [yearlyContributions, setYearlyContributions] = useState<PPFContribution[]>(
-    Array.from({ length: PPF_MATURITY_YEARS }, (_, i) => ({
-      year: (currentYear - 1) + i,
-      amount: 0,
-    }))
-  );
+  const [showModal, setShowModal] = useState(false);
+  const [yearlyContributions, setYearlyContributions] = useState<PPFContribution[]>([]);
 
-  const handleToggleVariableContributions = () => {
-    setVariablePastContributions(!variablePastContributions);
-    if (!variablePastContributions) {
-      // Initialize yearly contributions when switching to variable (15 years from start year)
-      const newContribs = Array.from({ length: PPF_MATURITY_YEARS }, (_, i) => ({
-        year: startYear + i,
-        amount: fixedContribution ? parseFloat(fixedContribution) : 0,
-      }));
+  // Initialize contributions for all 15 years
+  const initializeContributions = (year: number) => {
+    return Array.from({ length: PPF_MATURITY_YEARS }, (_, i) => ({
+      year: year + i,
+      interestRate: interestRate,
+      contributions: [{ amount: 0, date: undefined }],
+    }));
+  };
+
+  // Fill missing years and years with 0 contributions using last captured contribution
+  const fillMissingYears = (contributions: PPFContribution[]) => {
+    if (contributions.length === 0) return contributions;
+
+    // Find the last year with actual contributions (amount > 0)
+    let lastCapturedYear: PPFContribution | null = null;
+    for (let i = contributions.length - 1; i >= 0; i--) {
+      const hasActualContribution = contributions[i].contributions.some(c => c.amount > 0);
+      if (hasActualContribution) {
+        lastCapturedYear = contributions[i];
+        break;
+      }
+    }
+
+    if (!lastCapturedYear) return contributions;
+
+    // Fill years with 0 contributions and missing years with last captured values
+    const filled = contributions.map((contrib) => {
+      const hasActualContribution = contrib.contributions.some(c => c.amount > 0);
+      
+      if (hasActualContribution) {
+        return contrib;
+      }
+      
+      // Year has no actual contributions, fill it with last captured values
+      return {
+        ...contrib,
+        interestRate: lastCapturedYear!.interestRate,
+        contributions: lastCapturedYear!.contributions.map(c => ({
+          amount: c.amount,
+          date: '' // Will default to April 1st
+        })),
+      };
+    });
+
+    // Add any missing years beyond the array
+    for (let i = filled.length; i < PPF_MATURITY_YEARS; i++) {
+      filled.push({
+        year: startYear! + i,
+        interestRate: lastCapturedYear.interestRate,
+        contributions: lastCapturedYear.contributions.map(c => ({
+          amount: c.amount,
+          date: '' // Will default to April 1st
+        })),
+      });
+    }
+
+    return filled;
+  };
+
+  const handleStartYearChange = (newStartYear: number | null) => {
+    setStartYear(newStartYear);
+    if (newStartYear) {
+      // Initialize contributions when start year is set
+      const newContribs = initializeContributions(newStartYear);
       setYearlyContributions(newContribs);
+    } else {
+      setYearlyContributions([]);
     }
   };
 
-  const handleYearlyContributionChange = (year: number, amount: number) => {
+  const handleToggleVariableContributions = () => {
+    const newValue = !variablePastContributions;
+    setVariablePastContributions(newValue);
+
+    if (newValue) {
+      // Open modal when checkbox is checked
+      setShowModal(true);
+      // Initialize yearly contributions with default interest rate if not already done
+      if (yearlyContributions.length === 0 && startYear) {
+        const newContribs = initializeContributions(startYear);
+        setYearlyContributions(newContribs);
+      }
+    } else {
+      // Clear contributions when checkbox is unchecked and reset first year date
+      if (startYear) {
+        const newContribs = initializeContributions(startYear);
+        setYearlyContributions(newContribs);
+      }
+      setFirstYearContributionDate('');
+      setShowModal(false);
+    }
+  };
+
+  const handleContributionChange = (
+    year: number,
+    field: 'interestRate' | 'contributions',
+    value: number | PPFSingleContribution[]
+  ) => {
     setYearlyContributions(prev =>
-      prev.map(c => c.year === year ? { ...c, amount } : c)
+      prev.map(c =>
+        c.year === year ? { ...c, [field]: value } : c
+      )
     );
   };
 
-  const handleApplyToFutureYears = (fromYear: number) => {
+  const handleAddSingleContribution = (year: number) => {
+    setYearlyContributions(prev =>
+      prev.map(c =>
+        c.year === year
+          ? { ...c, contributions: [...c.contributions, { amount: 0, date: undefined }] }
+          : c
+      )
+    );
+  };
+
+  const handleRemoveSingleContribution = (year: number, index: number) => {
+    setYearlyContributions(prev =>
+      prev.map(c =>
+        c.year === year
+          ? {
+            ...c,
+            contributions: c.contributions.filter((_, i) => i !== index),
+          }
+          : c
+      )
+    );
+  };
+
+  const handleApplyRateToFutureYears = (fromYear: number) => {
     const contribution = yearlyContributions.find(c => c.year === fromYear);
     if (contribution) {
       setYearlyContributions(prev =>
-        prev.map(c => c.year > fromYear ? { ...c, amount: contribution.amount } : c)
+        prev.map(c =>
+          c.year > fromYear ? { ...c, interestRate: contribution.interestRate } : c
+        )
       );
     }
   };
 
-  const handleStartYearChange = (newStartYear: number) => {
-    setStartYear(newStartYear);
-    if (variablePastContributions) {
-      const newContribs = Array.from({ length: PPF_MATURITY_YEARS }, (_, i) => ({
-        year: newStartYear + i,
-        amount: fixedContribution ? parseFloat(fixedContribution) : 0,
-      }));
-      setYearlyContributions(newContribs);
-    }
-  };
-
   const handleCalculate = () => {
-    const contributions = variablePastContributions
-      ? yearlyContributions
-      : Array.from({ length: PPF_MATURITY_YEARS }, (_, i) => ({
+    if (!startYear) {
+      alert('Please enter the start year');
+      return;
+    }
+
+    let contributions: PPFContribution[];
+
+    if (variablePastContributions) {
+      // Fill missing years with last captured contribution
+      contributions = fillMissingYears(yearlyContributions);
+    } else {
+      contributions = Array.from({ length: PPF_MATURITY_YEARS }, (_, i) => ({
         year: startYear + i,
-        amount: fixedContribution ? parseFloat(fixedContribution) : 0,
+        interestRate: interestRate,
+        contributions: [
+          {
+            amount: fixedContribution ? parseFloat(fixedContribution) : 0,
+            date: i === 0 ? firstYearContributionDate || undefined : undefined,
+          },
+        ],
       }));
+    }
 
     const result = calculatePPF(startYear, interestRate, contributions);
     onCalculate?.(result);
   };
 
   const handleClearVariableContributions = () => {
-    setYearlyContributions(
-      Array.from({ length: PPF_MATURITY_YEARS }, (_, i) => ({
-        year: startYear + i,
-        amount: 0,
-      }))
-    );
+    if (startYear) {
+      const newContribs = initializeContributions(startYear);
+      setYearlyContributions(newContribs);
+    }
+  };
+
+  const handleCloseModal = () => {
+    setShowModal(false);
+  };
+
+  const handleOpenModal = () => {
+    setShowModal(true);
   };
 
   return (
@@ -95,217 +217,140 @@ const PPFForm = ({ onCalculate }: PPFFormProps) => {
         PPF Calculator
       </h2>
       <form className="space-y-6">
-        <div className="grid md:grid-cols-3 gap-6">
-          {/* Start Year */}
-          <div>
-            <label
-              className="block font-medium mb-2"
-              style={{ color: 'var(--color-text-secondary)' }}
-            >
-              Start Year
-            </label>
-            <input
-              type="number"
-              value={startYear}
-              onChange={(e) => handleStartYearChange(parseInt(e.target.value))}
-              min="1900"
-              max={currentYear}
-              className="w-full rounded-lg px-4 py-2 transition border"
-              style={{
-                backgroundColor: 'var(--color-bg-secondary)',
-                borderColor: 'var(--color-border-main)',
-                color: 'var(--color-text-primary)',
-              }}
-              onFocus={(e) => {
-                e.currentTarget.style.borderColor = 'var(--color-primary-main)';
-              }}
-              onBlur={(e) => {
-                e.currentTarget.style.borderColor = 'var(--color-border-main)';
-              }}
-            />
-          </div>
+        <PPFFormBasics
+          startYear={startYear}
+          onStartYearChange={handleStartYearChange}
+          interestRate={interestRate}
+          onInterestRateChange={setInterestRate}
+          currentYear={currentYear}
+        />
 
-          {/* Interest Rate */}
-          <div>
-            <label
-              className="block font-medium mb-2"
-              style={{ color: 'var(--color-text-secondary)' }}
-            >
-              Interest Rate (% per annum)
-            </label>
-            <input
-              type="number"
-              value={interestRate}
-              onChange={(e) => setInterestRate(parseFloat(e.target.value))}
-              min="0"
-              step="0.01"
-              className="w-full rounded-lg px-4 py-2 transition border"
-              style={{
-                backgroundColor: 'var(--color-bg-secondary)',
-                borderColor: 'var(--color-border-main)',
-                color: 'var(--color-text-primary)',
-              }}
-              onFocus={(e) => {
-                e.currentTarget.style.borderColor = 'var(--color-primary-main)';
-              }}
-              onBlur={(e) => {
-                e.currentTarget.style.borderColor = 'var(--color-border-main)';
-              }}
-            />
-          </div>
+        {/* Only show rest of form if start year is captured */}
+        {startYear && (
+          <>
+            {/* Fixed Contribution Inputs - Only show when variable is OFF */}
+            {!variablePastContributions && (
+              <div className="grid md:grid-cols-2 gap-6">
+                <div>
+                  <label
+                    className="block font-medium mb-2"
+                    style={{ color: 'var(--color-text-secondary)' }}
+                  >
+                    Yearly Contribution
+                  </label>
+                  <input
+                    type="number"
+                    value={fixedContribution}
+                    onChange={(e) => setFixedContribution(e.target.value)}
+                    min="0"
+                    max="150000"
+                    step="0.01"
+                    placeholder="Yearly Contribution Amount (₹)"
+                    className="w-full rounded-lg px-4 py-2 transition border"
+                    style={{
+                      backgroundColor: 'var(--color-bg-secondary)',
+                      borderColor: 'var(--color-border-main)',
+                      color: 'var(--color-text-primary)',
+                    }}
+                    onFocus={(e) => {
+                      e.currentTarget.style.borderColor = 'var(--color-primary-main)';
+                    }}
+                    onBlur={(e) => {
+                      e.currentTarget.style.borderColor = 'var(--color-border-main)';
+                    }}
+                  />
+                  <p className="text-xs mt-2" style={{ color: 'var(--color-text-secondary)' }}>
+                    Max ₹150,000 per year
+                  </p>
+                </div>
+                <div>
+                  <label
+                    className="block font-medium mb-2"
+                    style={{ color: 'var(--color-text-secondary)' }}
+                  >
+                    First Year Contribution Date
+                  </label>
+                  <input
+                    type="date"
+                    value={firstYearContributionDate}
+                    onChange={(e) => setFirstYearContributionDate(e.target.value)}
+                    className="w-full rounded-lg px-4 py-2 transition border"
+                    style={{
+                      backgroundColor: 'var(--color-bg-secondary)',
+                      borderColor: 'var(--color-border-main)',
+                      color: 'var(--color-text-primary)',
+                    }}
+                    onFocus={(e) => {
+                      e.currentTarget.style.borderColor = 'var(--color-primary-main)';
+                    }}
+                    onBlur={(e) => {
+                      e.currentTarget.style.borderColor = 'var(--color-border-main)';
+                    }}
+                  />
+                  <p className="text-xs mt-2" style={{ color: 'var(--color-text-secondary)' }}>
+                    For pro-rata interest calculation
+                  </p>
+                </div>
+              </div>
+            )}
 
-          {
-            !variablePastContributions && <div>
-              <label
-                className="block font-medium mb-2"
-                style={{ color: 'var(--color-text-secondary)' }}
-              >
-                Yearly Contribution
-              </label>
+            {/* Variable Contributions Checkbox */}
+            <div className="flex items-center gap-3">
               <input
-                type="number"
-                value={fixedContribution}
-                onChange={(e) => setFixedContribution(e.target.value)}
-                min="0"
-                step="0.01"
-                placeholder="Yearly Contribution Amount (₹)"
-                className="w-full rounded-lg px-4 py-2 transition border"
+                type="checkbox"
+                id="variableContributions"
+                checked={variablePastContributions}
+                onChange={handleToggleVariableContributions}
+                className="w-5 h-5 cursor-pointer"
                 style={{
-                  backgroundColor: 'var(--color-bg-secondary)',
-                  borderColor: 'var(--color-border-main)',
-                  color: 'var(--color-text-primary)',
-                }}
-                onFocus={(e) => {
-                  e.currentTarget.style.borderColor = 'var(--color-primary-main)';
-                }}
-                onBlur={(e) => {
-                  e.currentTarget.style.borderColor = 'var(--color-border-main)';
+                  accentColor: 'var(--color-primary-main)',
                 }}
               />
-            </div>
-          }
-
-        </div>
-
-        {
-          variablePastContributions && (
-            <Modal onClose={() => setVariablePastContributions(false)}>
-              <h3
-                className="font-bold text-xl mb-4"
+              <label
+                htmlFor="variableContributions"
+                className="font-medium cursor-pointer"
                 style={{ color: 'var(--color-text-secondary)' }}
               >
-                Annual Contributions (15-Year Maturity Period - FY {startYear}-{startYear + 1} to FY {startYear + 14}-{startYear + 15})
-              </h3>
+                Use Variable Contributions (Multiple deposits per year, different rates)
+              </label>
+            </div>
 
-              <div className='grid md:grid-cols-2 gap-4 max-h-96 overflow-y-auto p-4 rounded-lg' style={{ backgroundColor: 'var(--color-bg-secondary)' }}>
-                {yearlyContributions.map((contrib, index) => (
-                  <div key={contrib.year}>
-                    <div className="flex justify-between items-center mb-2">
-                      <label
-                        className="block text-sm font-medium"
-                        style={{ color: 'var(--color-text-secondary)' }}
-                      >
-                        FY {contrib.year}-{contrib.year + 1}
-                      </label>
-                      {index < yearlyContributions.length - 1 && (
-                        <button
-                          type="button"
-                          onClick={() => handleApplyToFutureYears(contrib.year)}
-                          className="text-xs px-2 py-1 rounded transition"
-                          style={{
-                            backgroundColor: 'var(--color-bg-secondary)',
-                            color: 'var(--color-primary-main)',
-                            border: '1px solid var(--color-primary-main)',
-                          }}
-                          title="Apply this year's value to all future years"
-                        >
-                          Apply to future →
-                        </button>
-                      )}
-                    </div>
-                    <input
-                      type="number"
-                      value={contrib.amount}
-                      onChange={(e) => handleYearlyContributionChange(contrib.year, parseFloat(e.target.value) || 0)}
-                      min="0"
-                      step="0.01"
-                      placeholder="₹ 0"
-                      className="w-full rounded-lg px-4 py-2 transition border"
-                      style={{
-                        backgroundColor: 'var(--color-bg-primary)',
-                        borderColor: 'var(--color-border-main)',
-                        color: 'var(--color-text-primary)',
-                      }}
-                      onFocus={(e) => {
-                        e.currentTarget.style.borderColor = 'var(--color-primary-main)';
-                      }}
-                      onBlur={(e) => {
-                        e.currentTarget.style.borderColor = 'var(--color-border-main)';
-                      }}
-                    />
-                  </div>
-                ))}
-              </div>
-              <div className='w-full flex col-span-full justify-end gap-3 mt-6'>
-                <button
-                  onClick={handleClearVariableContributions}
-                  type="button"
-                  className="px-6 py-3 rounded-lg transition font-medium"
-                  style={{
-                    backgroundColor: 'var(--color-status-warning)',
-                    color: 'var(--color-text-inverse)',
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.opacity = '0.8';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.opacity = '1';
-                  }}
-                >
-                  Clear All
-                </button>
-                <button
-                  onClick={() => setVariablePastContributions(false)}
-                  type="button"
-                  className="px-6 py-3 rounded-lg transition font-medium"
-                  style={{
-                    backgroundColor: 'var(--color-primary-main)',
-                    color: 'var(--color-text-inverse)',
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = 'var(--color-primary-dark)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = 'var(--color-primary-main)';
-                  }}
-                >
-                  Done
-                </button>
-              </div>
-            </Modal>
+            {/* Variable Contributions Summary - Show when variable is ON */}
+            {variablePastContributions && yearlyContributions.length > 0 && (
+              <PPFContributionsSummary 
+                yearlyContributions={yearlyContributions}
+                onEdit={handleOpenModal}
+              />
+            )}
 
-          )
-        }
-        <div className='block'>
-          <button
-            type="button"
-            onClick={handleToggleVariableContributions}
-            className="my-2 mr-2 font-bold py-3 px-6 rounded-lg transition transform hover:scale-105 text-lg"
-            style={{
-              background: 'linear-gradient(to right, var(--color-primary-main), var(--color-secondary-main))',
-              color: 'var(--color-text-inverse)',
-            }}
-          >
-            {variablePastContributions ? 'Use Fixed Contribution' : 'Variable Contributions'}
-          </button>
+            {showModal && variablePastContributions && (
+              <PPFVariableContributionsModal
+                startYear={startYear}
+                yearlyContributions={yearlyContributions}
+                onContributionChange={handleContributionChange}
+                onAddSingleContribution={handleAddSingleContribution}
+                onRemoveSingleContribution={handleRemoveSingleContribution}
+                onApplyRateToFutureYears={handleApplyRateToFutureYears}
+                onClearAll={handleClearVariableContributions}
+                onClose={handleCloseModal}
+              />
+            )}
+          </>
+        )}
 
+        <div className="block">
           <button
             type="button"
             onClick={handleCalculate}
-            className="my-2 ml-2 font-bold py-3 px-6 rounded-lg transition transform hover:scale-105 text-lg"
+            disabled={!startYear}
+            className="my-2 font-bold py-3 px-6 rounded-lg transition transform hover:scale-105 text-lg"
             style={{
-              background: 'linear-gradient(to right, var(--color-primary-main), var(--color-secondary-main))',
+              background: startYear
+                ? 'linear-gradient(to right, var(--color-primary-main), var(--color-secondary-main))'
+                : 'var(--color-border-main)',
               color: 'var(--color-text-inverse)',
+              cursor: startYear ? 'pointer' : 'not-allowed',
+              opacity: startYear ? 1 : 0.5,
             }}
           >
             Calculate
