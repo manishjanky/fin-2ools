@@ -14,7 +14,9 @@ import {
   Filler,
 } from 'chart.js';
 import type { PortfolioValueSnapshot } from '../utils/portfolioPerformanceCalculations';
-import { resamplePortfolioData, getPerformanceMetrics } from '../utils/portfolioPerformanceCalculations';
+import { resamplePortfolioData, getPerformanceMetrics, calculatePortfolioPerformanceTimeline } from '../utils/portfolioPerformanceCalculations';
+import { useInvestmentStore } from '../store';
+import { useMutualFundsStore } from '../store/mutualFundsStore';
 
 ChartJS.register(
   CategoryScale,
@@ -27,19 +29,118 @@ ChartJS.register(
   Filler
 );
 
-interface PortfolioPerformanceCurveProps {
-  snapshots: PortfolioValueSnapshot[];
-}
+interface PortfolioPerformanceCurveProps {}
 
-export default function PortfolioPerformanceCurve({
-  snapshots,
-}: PortfolioPerformanceCurveProps) {
+export default function PortfolioPerformanceCurve(
+  _props: PortfolioPerformanceCurveProps
+) {
+  const { getAllInvestments } = useInvestmentStore();
+  const { getOrFetchSchemeDetails, getOrFetchSchemeHistory } = useMutualFundsStore();
+  
+  const [snapshots, setSnapshots] = useState<PortfolioValueSnapshot[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [isRendered, setIsRendered] = useState(false);
 
+  // Fetch and calculate portfolio data
+  useEffect(() => {
+    const calculatePortfolioData = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
+
+        const investments = getAllInvestments();
+
+        if (investments.length === 0) {
+          console.warn('No investments found for portfolio calculation');
+          setSnapshots([]);
+          setIsRendered(true);
+          setIsLoading(false);
+          return;
+        }
+
+        // Get scheme details for all investments
+        const fundDetails = await Promise.all(
+          investments.map(async (investmentData) => {
+            const scheme = await getOrFetchSchemeDetails(investmentData.schemeCode);
+            return {
+              scheme: scheme || {
+                schemeCode: investmentData.schemeCode,
+                schemeName: 'Unknown Scheme',
+              },
+              investmentData,
+            };
+          })
+        );
+
+        const allInvestments = fundDetails.flatMap((f) => f.investmentData.investments);
+
+        if (allInvestments.length === 0) {
+          console.warn('No investments found for portfolio calculation');
+          setSnapshots([]);
+          setIsRendered(true);
+          setIsLoading(false);
+          return;
+        }
+
+        const navHistories = new Map();
+
+        // Fetch NAV histories for all schemes
+        for (const { scheme } of fundDetails) {
+          try {
+            const history = await getOrFetchSchemeHistory(scheme.schemeCode, 3650); // Get 10 years of history
+            if (history?.data && Array.isArray(history.data) && history.data.length > 0) {
+              navHistories.set(scheme.schemeCode, history.data);
+            } else {
+              console.warn(`No NAV history available for scheme ${scheme.schemeCode}`);
+            }
+          } catch (histErr) {
+            console.error(`Error fetching NAV history for scheme ${scheme.schemeCode}:`, histErr);
+            // Continue with other schemes instead of breaking
+          }
+        }
+
+        if (navHistories.size === 0) {
+          console.warn('No NAV histories available for any scheme');
+          setSnapshots([]);
+          setError('Unable to fetch NAV history. Please try again later.');
+          setIsRendered(true);
+          setIsLoading(false);
+          return;
+        }
+
+        // Calculate performance snapshots
+        const calculatedSnapshots = calculatePortfolioPerformanceTimeline(allInvestments, navHistories);
+
+        if (!Array.isArray(calculatedSnapshots) || calculatedSnapshots.length === 0) {
+          console.warn('Portfolio calculation returned empty snapshots');
+          setSnapshots([]);
+          setIsRendered(true);
+          setIsLoading(false);
+          return;
+        }
+
+        setSnapshots(calculatedSnapshots);
+        setIsRendered(true);
+        setError(null);
+      } catch (calcErr) {
+        console.error('Error calculating portfolio performance:', calcErr);
+        setSnapshots([]);
+        setError(
+          `Error calculating portfolio performance: ${calcErr instanceof Error ? calcErr.message : 'Unknown error'}`
+        );
+        setIsRendered(true);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    calculatePortfolioData();
+  }, [getAllInvestments, getOrFetchSchemeDetails, getOrFetchSchemeHistory]);
+
+  // Validate snapshots after they're calculated
   useEffect(() => {
     try {
-      // Validate snapshots
       if (!Array.isArray(snapshots)) {
         console.warn('Invalid snapshots: not an array', snapshots);
         setError('Portfolio data is invalid');
@@ -48,7 +149,6 @@ export default function PortfolioPerformanceCurve({
 
       if (snapshots.length === 0) {
         console.warn('Empty snapshots array');
-        setIsRendered(true);
         return;
       }
 
@@ -69,7 +169,6 @@ export default function PortfolioPerformanceCurve({
         return;
       }
 
-      setIsRendered(true);
       setError(null);
     } catch (err) {
       console.error('Error validating snapshots:', err);
@@ -95,14 +194,14 @@ export default function PortfolioPerformanceCurve({
     );
   }
 
-  if (!isRendered || !Array.isArray(snapshots) || snapshots.length === 0) {
+  if (isLoading || !isRendered || !Array.isArray(snapshots) || snapshots.length === 0) {
     return (
       <div className="rounded-lg p-12 bg-bg-secondary border border-border-main text-center">
-        <p className="text-text-secondary">
-          {!isRendered ? 'Loading portfolio performance data...' : 'No portfolio performance data available'}
+        <p className="text-text-secondary bg-bg-secondary">
+          {isLoading || !isRendered ? 'Evaluating portfolio performance data...' : 'No portfolio performance data available'}
         </p>
         <p className="text-sm text-text-secondary mt-2">
-          {!isRendered
+          {isLoading || !isRendered
             ? 'This may take a moment...'
             : 'Start investing to see your portfolio performance graph'}
         </p>

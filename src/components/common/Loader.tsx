@@ -1,7 +1,7 @@
 export default function Loader({ message, fullHeight }: { message?: string, fullHeight?: boolean }) {
   return (
     <div
-      className={`${fullHeight ? 'min-h-screen' : ''} flex items-center justify-center bg-bg-primary`}
+      className={`${fullHeight ? 'min-h-screen' : ''} flex items-center justify-center`}
     >
       <div className="text-center">
         <div
