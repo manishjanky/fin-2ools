@@ -31,7 +31,7 @@ export default function PrivacyNotice() {
                             <ul className="space-y-3 text-text-secondary leading-relaxed">
                                 <li className="flex items-start">
                                     <span className="text-green-500 mr-3 mt-1">✓</span>
-                                    <span>Any info you enter (FD, Mutual Funds, PPF investments) is stored exclusively in your browser's local storage</span>
+                                    <span>Any info you enter related to FD, PPF is not stored anywhere. Info you add related to Mutual Funds is stored exclusively in your browser's local storage</span>
                                 </li>
                                 <li className="flex items-start">
                                     <span className="text-green-500 mr-3 mt-1">✓</span>
