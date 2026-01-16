@@ -52,16 +52,12 @@ export default function PrivacyNotice() {
                         <section>
                             <h2 className="text-2xl font-semibold mb-4 text-text-primary">What We Do Collect</h2>
                             <p className="text-text-secondary leading-relaxed mb-4">
-                                The application may collect minimal non-personal information for functionality:
+                                The application does not collect any personal information:
                             </p>
                             <ul className="space-y-2 text-text-secondary leading-relaxed">
                                 <li className="flex items-start">
                                     <span className="text-blue-500 mr-3 mt-1">•</span>
-                                    <span>Browser preferences and theme settings (stored locally)</span>
-                                </li>
-                                <li className="flex items-start">
-                                    <span className="text-blue-500 mr-3 mt-1">•</span>
-                                    <span>Local storage of your financial information at your request</span>
+                                    <span>The Mutual fund you add to My-Funds is stored in your browser's local storage. The same is in no way shared with any other service or a server.</span>
                                 </li>
                             </ul>
                         </section>
@@ -146,7 +142,7 @@ export default function PrivacyNotice() {
                                 </li>
                             </ul>
                             <p className="text-text-secondary leading-relaxed mt-4 text-sm">
-                                This is a learning project. Always verify calculations independently and consult with professional financial advisors before making investment decisions.
+                                This is a hobby project. Always verify calculations independently and consult with professional financial advisors before making investment decisions.
                             </p>
                         </section>
 
