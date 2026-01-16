@@ -1,0 +1,50 @@
+name: Deploy to Vercel
+
+on:
+  push:
+    branches:
+      - main          # Change if you use a different default branch
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      # 1️⃣ Checkout the repository
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 2️⃣ Set up Node (adjust version as needed)
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'   # or whatever version your project requires
+          cache: 'npm'          # caches npm dependencies for faster runs
+
+      # 3️⃣ Install dependencies
+      - name: Install dependencies
+        run: npm ci               # or `yarn install` / `pnpm install`
+
+      # 4️⃣ Build the project (skip if Vercel does the build itself)
+      - name: Build project
+        run: npm run build       # adjust if you use a different script
+
+      # 5️⃣ Deploy to Vercel
+      - name: Deploy to Vercel
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}   # optional, see below
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }} # optional
+        run: |
+          # Install Vercel CLI globally
+          npm i -g vercel
+
+          # Authenticate using the token
+          echo "$VERCEL_TOKEN" | vercel login --token -
+
+          # Deploy – `--prod` makes it a production deployment
+          vercel --prod \
+            --token "$VERCEL_TOKEN" \
+            --confirm \
+            --no-clipboard
