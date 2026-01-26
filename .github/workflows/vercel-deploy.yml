@@ -3,9 +3,10 @@ name: Deploy to Vercel
 on:
   push:
     branches:
-      - main          # Change if you use a different default branch
+      - main
+      - dev          # Change if you use a different default branch
   pull_request:
-    types: [opened, synchronize, reopened]
+    types: [closed, opened, synchronize, reopened]
 
 jobs:
   build-and-deploy:
@@ -32,6 +33,7 @@ jobs:
 
       # 5️⃣ Deploy to Vercel
       - name: Deploy to Vercel
+        if: ${{ github.event.pull_request.merged == true }}
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN_FIN2OOLS }}
         run: |
