@@ -4,6 +4,7 @@ import { investmentMetricSingleFund } from '../utils/investmentCalculations';
 import { useMutualFundsStore } from '../store/mutualFundsStore';
 import AddInvestmentModal from './AddInvestmentModal';
 import { useInvestmentStore } from '../store';
+import SchemeNAV from './SchemeNAV';
 
 interface MyFundsCardProps {
   scheme: MutualFundScheme;
@@ -53,10 +54,10 @@ export default function MyFundsCard({ scheme, investmentData }: MyFundsCardProps
     $event.stopPropagation();
     setShowModal(true);
   }
-  
+
   return (
     <div
-      className="rounded-lg p-4 hover:shadow-lg transition border mb-6 cursor-pointer bg-bg-primary border-primary-lighter hover:border-primary-main"
+      className="rounded-lg p-4 hover:shadow-lg transition border cursor-pointer bg-bg-primary border-primary-lighter hover:border-primary-main"
     >
       <div className="grid md:grid-cols-3 gap-4 items-start">
         {/* Scheme Info */}
@@ -74,13 +75,8 @@ export default function MyFundsCard({ scheme, investmentData }: MyFundsCardProps
         </div>
 
         {/* Current NAV */}
-        <div className="text-right">
-          <p className="text-sm mb-1 text-text-tertiary">
-            Current NAV
-          </p>
-          <p className="text-2xl font-bold text-secondary-main">
-            ₹{navValue}
-          </p>
+        <div className="text-right max-w-sm md:ml-auto">
+          <SchemeNAV scheme={scheme} />
         </div>
       </div>
 
