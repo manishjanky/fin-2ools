@@ -18,7 +18,6 @@ export default function MyFundsCard({ scheme, investmentData }: MyFundsCardProps
   const [navHistory, setNavHistory] = useState<NAVData[]>([]);
   const [, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
-  const navValue = scheme.nav ? parseFloat(scheme.nav).toFixed(2) : 'N/A';
   const { getSchemeInvestments, addInvestment } = useInvestmentStore();
   const [investmentDataState, setInvestmentData] = useState<UserInvestmentData>(investmentData);
   useEffect(() => {
