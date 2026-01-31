@@ -39,36 +39,19 @@ export default function LineChart({ navData, timeframeLabel }: LineChartProps) {
     const minNav = Math.min(...navValues);
     const maxNav = Math.max(...navValues);
 
-    // Sample data only if too many points to avoid performance issues
-    const sampleInterval = navData.length > 100 ? Math.ceil(navData.length / 50) : 1;
-    const sampledData = navData.filter((_, i) => i % sampleInterval === 0 || i === navData.length - 1);
-    const sampledLabels = sampledData.map((d) => {
-        // Format date for display
-        // const [year, month, day] = d.date.split('-');
-        return d.date; // Store full date for tooltip
-    });
-    const sampledNavValues = sampledData.map((d) => {
-        const nav = typeof d.nav === 'string' ? parseFloat(d.nav) : d.nav;
-        return nav;
-    });
 
     const chartData = {
-        labels: sampledLabels,
+        labels: navData.map((d) => d.date),
         datasets: [
             {
                 label: `NAV Trend (${timeframeLabel || 'Selected Period'})`,
-                data: sampledNavValues,
+                data: navValues,
                 borderColor: '#a78bfa',
                 backgroundColor: 'rgba(167, 139, 250, 0.1)',
                 fill: true,
-                tension: 0.4,
-                pointBackgroundColor: '#a78bfa',
-                pointBorderColor: '#e0e7ff',
-                pointBorderWidth: 1,
-                pointRadius: 4,
-                pointHoverRadius: 6,
-                borderWidth: 2,
-                spanGaps: true,
+                pointRadius: 0,
+                pointHoverRadius: 0,
+                spanGaps: false,
             },
         ],
     };
@@ -89,6 +72,8 @@ export default function LineChart({ navData, timeframeLabel }: LineChartProps) {
                 },
             },
             tooltip: {
+                mode: 'index',
+                intersect: false,
                 backgroundColor: 'rgba(15, 23, 42, 0.9)',
                 titleColor: '#f1f5f9',
                 bodyColor: '#cbd5e1',
@@ -103,7 +88,7 @@ export default function LineChart({ navData, timeframeLabel }: LineChartProps) {
                         return date.format('D MMM YYYY');
                     },
                     label: function (context: any) {
-                        return `NAV: ₹${parseFloat(context.parsed.y).toFixed(2)}`;
+                        return `NAV: ₹${parseFloat(context.parsed.y).toFixed(3)}`;
                     },
                 },
             },
@@ -125,7 +110,7 @@ export default function LineChart({ navData, timeframeLabel }: LineChartProps) {
                 ticks: {
                     color: '#94a3b8',
                     font: {
-                        size: 11,
+                        size: 8,
                     },
                     callback: function (value: any) {
                         return `₹${value.toFixed(0)}`;
@@ -133,6 +118,7 @@ export default function LineChart({ navData, timeframeLabel }: LineChartProps) {
                 },
             },
             x: {
+                // type: 'time',
                 display: true,
                 grid: {
                     display: false,
@@ -140,7 +126,7 @@ export default function LineChart({ navData, timeframeLabel }: LineChartProps) {
                 ticks: {
                     color: '#94a3b8',
                     font: {
-                        size: 11,
+                        size: 8,
                     },
                     maxRotation: 45,
                     minRotation: 0,

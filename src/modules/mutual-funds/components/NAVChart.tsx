@@ -37,24 +37,12 @@ export default function NAVChart({ navData, timeframeLabel }: NAVChartProps) {
     const minNav = Math.min(...navValues);
     const maxNav = Math.max(...navValues);
 
-    // Sample data only if too many points to avoid performance issues
-    const sampleInterval = navData.length > 50 ? Math.ceil(navData.length / 30) : 1;
-    const sampledData = navData.filter((_, i) => i % sampleInterval === 0 || i === navData.length - 1);
-    const sampledLabels = sampledData.map((d) => {
-        // Store full date for tooltip
-        return d.date;
-    });
-    const sampledNavValues = sampledData.map((d) => {
-        const nav = typeof d.nav === 'string' ? parseFloat(d.nav) : d.nav;
-        return nav;
-    });
-
     const chartData = {
-        labels: sampledLabels,
+        labels: navData.map((d) => d.date),
         datasets: [
             {
                 label: `NAV (${timeframeLabel})`,
-                data: sampledNavValues,
+                data: navValues,
                 backgroundColor: [
                     'rgba(167, 139, 250, 0.7)',
                 ],
