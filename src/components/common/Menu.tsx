@@ -17,6 +17,12 @@ export default function Menu({ isMobile }: { isMobile: boolean }) {
                 My Funds
             </Link>
             <Link
+                to="/mutual-funds/watchlist"
+                className="transition text-text-secondary hover:text-text-primary"
+            >
+                Watchlist
+            </Link>
+            <Link
                 to="/mutual-funds/explore-funds"
                 className="transition text-text-secondary hover:text-text-primary"
             >

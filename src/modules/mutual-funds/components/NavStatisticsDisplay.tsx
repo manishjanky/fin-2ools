@@ -23,6 +23,9 @@ export default function NavStatisticsDisplay({ navData }: ChartStatisticsDisplay
         const startNav = navValues[0];
         const endNav = navValues[navValues.length - 1];
         const changePercent = ((endNav - startNav) / startNav) * 100;
+        const oneDayChangePercent = navValues.length >= 2 
+            ? ((endNav - navValues[navValues.length - 2]) / navValues[navValues.length - 2]) * 100
+            : 0;
 
         // Get month information from data range using moment.js
         const firstDate = moment(navData[0].date, 'DD-MM-YYYY');
@@ -39,6 +42,7 @@ export default function NavStatisticsDisplay({ navData }: ChartStatisticsDisplay
             startNav,
             endNav,
             changePercent,
+            oneDayChangePercent,
             periodLabel,
         };
     }, [navData]);
@@ -55,7 +59,23 @@ export default function NavStatisticsDisplay({ navData }: ChartStatisticsDisplay
               {stats.periodLabel}
             </h3>
             
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                {/* 1D Change */}
+                <div
+                  className="rounded-lg p-4 bg-bg-primary border border-border-light"
+                >
+                    <p
+                      className="text-xs font-medium uppercase tracking-wider mb-1 text-text-secondary"
+                    >
+                        1D Change
+                    </p>
+                    <p
+                      className={`text-xl font-semibold ${stats.oneDayChangePercent >= 0 ? 'text-success' : 'text-error'}`}
+                    >
+                        {stats.oneDayChangePercent >= 0 ? '+' : ''}{stats.oneDayChangePercent.toFixed(2)}%
+                    </p>
+                </div>
+
                 {/* Highest NAV */}
                 <div
                   className="rounded-lg p-4 bg-bg-primary border border-border-light"

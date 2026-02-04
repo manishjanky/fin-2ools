@@ -13,6 +13,7 @@ const FD = lazy(() => import('./modules/fd/FD'));
 const MutualFunds = lazy(() => import('./modules/mutual-funds/MutualFunds'));
 const SchemeDetails = lazy(() => import('./modules/mutual-funds/SchemeDetails'));
 const MyFunds = lazy(() => import('./modules/mutual-funds/MyFunds'));
+const Watchlist = lazy(() => import('./modules/mutual-funds/Watchlist'));
 const FundInvestmentDetails = lazy(() => import('./modules/mutual-funds/components/FundInvestmentDetails'));
 const PPF = lazy(() => import('./modules/ppf/PPF'));
 const PrivacyNotice = lazy(() => import('./modules/PrivacyNotice'));
@@ -90,6 +91,14 @@ const routes = [
                                 ),
                             },
                         ],
+                    },
+                    {
+                        path: "watchlist",
+                        element: (
+                            <Suspense fallback={<Loader fullHeight={true}/>}>
+                                <Watchlist />
+                            </Suspense>
+                        ),
                     },
                     {
                         path: "scheme/:schemeCode",

@@ -1,12 +1,41 @@
-import { create } from 'zustand';
-import type { MutualFundScheme, SearchResult, SchemeHistoryResponse } from '../types/mutual-funds';
-import { fetchLatestNAV, searchMutualFunds, fetchSchemeHistory, fetchSchemeDetails } from '../utils/mutualFundsService';
+import { create } from "zustand";
+import type {
+  MutualFundScheme,
+  SearchResult,
+  SchemeHistoryResponse,
+} from "../types/mutual-funds";
+import {
+  fetchLatestNAV,
+  searchMutualFunds,
+  fetchSchemeHistory,
+  fetchSchemeDetails,
+} from "../utils/mutualFundsService";
+
+type FundTypeFilter = "all" | "direct" | "regular";
+
+// Helper function to apply fund type filter
+const applyFundTypeFilter = (
+  schemes: MutualFundScheme[],
+  filter: FundTypeFilter,
+): MutualFundScheme[] => {
+  if (filter === "all") return schemes;
+  return schemes.filter((scheme) => {
+    const schemeName = scheme.schemeName.toLowerCase();
+    if (filter === "direct") {
+      return schemeName.includes("direct");
+    } else if (filter === "regular") {
+      return !schemeName.includes("direct");
+    }
+    return true;
+  });
+};
 
 interface MutualFundsStore {
   // State
   schemes: MutualFundScheme[];
   filteredSchemes: MutualFundScheme[];
   searchQuery: string;
+  fundTypeFilter: FundTypeFilter;
   currentPage: number;
   isLoading: boolean;
   error: string | null;
@@ -20,10 +49,14 @@ interface MutualFundsStore {
   loadSchemes: () => Promise<void>;
   setSearchQuery: (query: string) => void;
   performSearch: (query: string) => Promise<void>;
+  setFundTypeFilter: (filter: FundTypeFilter) => void;
   setCurrentPage: (page: number) => void;
   resetSearch: () => void;
   setError: (error: string | null) => void;
-  getOrFetchSchemeHistory: (schemeCode: number, days: number) => Promise<SchemeHistoryResponse>;
+  getOrFetchSchemeHistory: (
+    schemeCode: number,
+    days: number,
+  ) => Promise<SchemeHistoryResponse>;
   getOrFetchSchemeDetails: (schemeCode: number) => Promise<MutualFundScheme>;
 }
 
@@ -31,7 +64,8 @@ export const useMutualFundsStore = create<MutualFundsStore>((set, get) => ({
   // Initial state
   schemes: [],
   filteredSchemes: [],
-  searchQuery: '',
+  searchQuery: "",
+  fundTypeFilter: "all",
   currentPage: 1,
   isLoading: false,
   error: null,
@@ -44,7 +78,7 @@ export const useMutualFundsStore = create<MutualFundsStore>((set, get) => ({
   // Load all schemes
   loadSchemes: async () => {
     const { hasLoaded } = get();
-    
+
     // Return cached data if already loaded
     if (hasLoaded) {
       return;
@@ -61,7 +95,7 @@ export const useMutualFundsStore = create<MutualFundsStore>((set, get) => ({
       });
     } catch (err) {
       const errorMessage =
-        err instanceof Error ? err.message : 'Failed to load mutual funds';
+        err instanceof Error ? err.message : "Failed to load mutual funds";
       set({ error: errorMessage, isLoading: false });
       console.error(err);
     }
@@ -74,21 +108,26 @@ export const useMutualFundsStore = create<MutualFundsStore>((set, get) => ({
 
   // Perform search with local filtering first, then API fallback
   performSearch: async (query: string) => {
-    const { schemes, searchResults } = get();
+    const { schemes, searchResults, fundTypeFilter } = get();
 
-    // If empty query, show all schemes
-    if (query.trim() === '') {
-      set({ filteredSchemes: schemes, searchQuery: '', currentPage: 1 });
+    // If empty query, show all schemes with fund type filter applied
+    if (query.trim() === "") {
+      const filtered = applyFundTypeFilter(schemes, fundTypeFilter);
+      set({ filteredSchemes: filtered, searchQuery: "", currentPage: 1 });
       return;
     }
 
     const lowerQuery = query.toLowerCase();
 
     // First, try to filter from locally loaded schemes
-    const localMatches = schemes.filter((scheme) =>
-      scheme.schemeName.toLowerCase().includes(lowerQuery) ||
-      scheme.fundHouse?.toLowerCase().includes(lowerQuery)
+    let localMatches = schemes.filter(
+      (scheme) =>
+        scheme.schemeName.toLowerCase().includes(lowerQuery) ||
+        scheme.fundHouse?.toLowerCase().includes(lowerQuery),
     );
+
+    // Apply fund type filter
+    localMatches = applyFundTypeFilter(localMatches, fundTypeFilter);
 
     // If local results found, use them
     if (localMatches.length > 0) {
@@ -104,9 +143,10 @@ export const useMutualFundsStore = create<MutualFundsStore>((set, get) => ({
     // If no local results, check cache
     if (searchResults.has(query)) {
       const cachedResults = searchResults.get(query)!;
-      const matched = schemes.filter((scheme) =>
-        cachedResults.some((result) => result.schemeCode === scheme.schemeCode)
+      let matched = schemes.filter((scheme) =>
+        cachedResults.some((result) => result.schemeCode === scheme.schemeCode),
       );
+      matched = applyFundTypeFilter(matched, fundTypeFilter);
       set({
         filteredSchemes: matched,
         searchQuery: query,
@@ -129,9 +169,12 @@ export const useMutualFundsStore = create<MutualFundsStore>((set, get) => ({
       });
 
       // Match search results with full scheme data
-      const matched = schemes.filter((scheme) =>
-        results.some((result) => result.schemeCode === scheme.schemeCode)
+      let matched = schemes.filter((scheme) =>
+        results.some((result) => result.schemeCode === scheme.schemeCode),
       );
+
+      // Apply fund type filter
+      matched = applyFundTypeFilter(matched, fundTypeFilter);
 
       set({
         filteredSchemes: matched,
@@ -141,7 +184,7 @@ export const useMutualFundsStore = create<MutualFundsStore>((set, get) => ({
       });
     } catch (err) {
       const errorMessage =
-        err instanceof Error ? err.message : 'Failed to search mutual funds';
+        err instanceof Error ? err.message : "Failed to search mutual funds";
       set({ error: errorMessage, isLoading: false, filteredSchemes: [] });
       console.error(err);
     }
@@ -152,11 +195,26 @@ export const useMutualFundsStore = create<MutualFundsStore>((set, get) => ({
     set({ currentPage: page });
   },
 
+  // Set fund type filter
+  setFundTypeFilter: (filter: FundTypeFilter) => {
+    const { schemes, searchQuery, performSearch } = get();
+    set({ fundTypeFilter: filter, currentPage: 1 });
+
+    // Re-apply current search with new filter
+    if (searchQuery) {
+      performSearch(searchQuery);
+    } else {
+      const filtered = applyFundTypeFilter(schemes, filter);
+      set({ filteredSchemes: filtered });
+    }
+  },
+
   // Reset search
   resetSearch: () => {
     const { schemes } = get();
     set({
-      searchQuery: '',
+      searchQuery: "",
+      fundTypeFilter: "all",
       filteredSchemes: schemes,
       currentPage: 1,
       error: null,
@@ -185,7 +243,7 @@ export const useMutualFundsStore = create<MutualFundsStore>((set, get) => ({
 
     // Make the API call
     const promise = fetchSchemeHistory(schemeCode, days);
-    
+
     // Track this request as in-flight
     set((state) => {
       const newInFlightRequests = new Map(state.inFlightRequests);
@@ -195,7 +253,7 @@ export const useMutualFundsStore = create<MutualFundsStore>((set, get) => ({
 
     try {
       const data = await promise;
-      
+
       // Cache the result only if data is not null
       if (data) {
         set((state) => {
@@ -241,7 +299,7 @@ export const useMutualFundsStore = create<MutualFundsStore>((set, get) => ({
 
     // Make the API call
     const promise = fetchSchemeDetails(schemeCode);
-    
+
     // Track this request as in-flight
     set((state) => {
       const newInFlightRequests = new Map(state.inFlightRequests);
@@ -251,7 +309,7 @@ export const useMutualFundsStore = create<MutualFundsStore>((set, get) => ({
 
     try {
       const data = await promise;
-      
+
       // Cache the result only if data is not null
       if (data) {
         set((state) => {
@@ -279,4 +337,4 @@ export const useMutualFundsStore = create<MutualFundsStore>((set, get) => ({
       throw error;
     }
   },
-}))
+}));
