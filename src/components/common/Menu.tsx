@@ -1,8 +1,7 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router';
+import { Link } from 'react-router';
 
 export default function Menu() {
-    const navigate = useNavigate()
     const [isMenuOpen, setIsMenuOpen] = useState(false);
 
     return (
@@ -11,7 +10,6 @@ export default function Menu() {
                 isMenuOpen ? "grid grid-cols-1 mt-4 py-4 gap-4 border-t border-border-light absolute px-2 top-0 left-0 w-dvw bg-bg-primary" : "hidden lg:flex space-x-8 gap-8 items-center"
             }>
                 <div
-                    onClick={() => navigate('/deposits/fd')}
                     className="transition text-text-secondary hover:text-text-primary relative group"
                 >
                     Deposits
@@ -32,7 +30,6 @@ export default function Menu() {
 
                 </div>
                 <div
-                    onClick={() => navigate('/mutual-funds')}
                     className="transition text-text-secondary hover:text-text-primary relative group"
                 >
                     Mutual Funds
