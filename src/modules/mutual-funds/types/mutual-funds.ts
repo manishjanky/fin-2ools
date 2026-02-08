@@ -101,6 +101,7 @@ export interface InvestmentInstallment {
   amount: number;
   nav: number;
   units: number;
+  stampDuty: number;
   isCancelled?: boolean;
   cancelledOn?: string;
 }

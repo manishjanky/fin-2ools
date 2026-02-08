@@ -28,9 +28,13 @@ export default function FundInvestmentHistory({ installments }: { installments: 
                             <th className="px-6 py-4 text-right font-semibold text-text-secondary">
                                 Amount
                             </th>
+                             <th className="px-6 py-4 text-right font-semibold text-text-secondary">
+                               Stamp Duty(0.005%)
+                            </th>
                             <th className="px-6 py-4 text-right font-semibold text-text-secondary">
                                Applicable NAV
                             </th>
+
                             <th className="px-6 py-4 text-right font-semibold text-text-secondary">
                                 Units
                             </th>
@@ -49,6 +53,9 @@ export default function FundInvestmentHistory({ installments }: { installments: 
                                 </td>
                                 <td className="px-6 py-4 text-right text-secondary-main">
                                     ₹{inst.amount.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+                                </td>
+                                 <td className="px-6 py-4 text-right text-secondary-main">
+                                    ₹{inst.stampDuty.toLocaleString('en-IN', { maximumFractionDigits: 4 })}
                                 </td>
                                 <td className="px-6 py-4 text-right text-text-primary">
                                     ₹{inst.nav.toFixed(2)}

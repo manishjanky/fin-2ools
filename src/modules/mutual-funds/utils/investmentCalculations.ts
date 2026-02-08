@@ -6,7 +6,7 @@ import type {
   UserInvestmentData,
   InvestmentInstallment,
 } from "../types/mutual-funds";
-
+const STAMP_DUTY_RATE = 0.00005; // 0.005%
 /**
  * Get the latest (most recent) NAV from history
  * NAV history is in ascending order (oldest first), so we get the last element
@@ -16,38 +16,76 @@ export const getLatestNav = (navHistory: NAVData[]): NAVData | null => {
   return navHistory[navHistory.length - 1]; // Most recent is at the end
 };
 
+const getNavValueOnDate = (navHistory: NAVData[], dateStr: string): number => {
+  const nav = findClosestNav(navHistory, dateStr);
+  return nav ? parseFloat(nav.nav) : 0;
+};
+
+const getUnitsOnDate = (
+  navHistory: NAVData[],
+  dateStr: string,
+  amount: number,
+): { units: number; nav: number; stampDuty: number } => {
+  const navValue = getNavValueOnDate(navHistory, dateStr);
+  const stampDuty = amount * STAMP_DUTY_RATE;
+  const effectiveAmount = Math.max(0, amount - stampDuty);
+  const units =
+    navValue > 0 && effectiveAmount > 0 ? effectiveAmount / navValue : 0;
+  return { units, nav: navValue, stampDuty };
+};
+
+const getSipScheduleDates = (investment: UserInvestment): moment.Moment[] => {
+  const dates: moment.Moment[] = [];
+  const startDate = moment(investment.startDate, "DD-MM-YYYY");
+  const sipMonthlyDate = investment.sipMonthlyDate || 1;
+  const endDate = investment.sipEndDate
+    ? moment(investment.sipEndDate, "DD-MM-YYYY")
+    : moment();
+
+  if (startDate.isSameOrBefore(endDate)) {
+    dates.push(startDate.clone());
+  }
+
+  let next = startDate.clone().add(1, "month").date(sipMonthlyDate);
+  while (next.isSameOrBefore(endDate)) {
+    dates.push(next.clone());
+    next = next.add(1, "month").date(sipMonthlyDate);
+  }
+  return dates;
+};
+
 /**
  * Calculate investment duration from first investment date to today
  */
 export const calculateInvestmentDuration = (
-  investments: UserInvestment[]
+  investments: UserInvestment[],
 ): string => {
-  if (investments.length === 0) return '0 months';
-  
+  if (investments.length === 0) return "0 months";
+
   // Get the earliest investment date
   const earliestDate = moment.min(
-    investments.map((inv) => moment(inv.startDate, "DD-MM-YYYY"))
+    investments.map((inv) => moment(inv.startDate, "DD-MM-YYYY")),
   );
-  
+
   // Calculate total months from earliest investment to today
   const today = moment();
   const totalMonths = today.diff(earliestDate, "months");
-  
+
   // If less than 12 months, show only months
   if (totalMonths < 12) {
-    return `${totalMonths} month${totalMonths !== 1 ? 's' : ''}`;
+    return `${totalMonths} month${totalMonths !== 1 ? "s" : ""}`;
   }
-  
+
   // 12 months or more: show both years and months
   const years = Math.floor(totalMonths / 12);
   const months = totalMonths % 12;
-  
+
   if (months === 0) {
     // Exact years, no remaining months
-    return `${years} year${years !== 1 ? 's' : ''}`;
+    return `${years} year${years !== 1 ? "s" : ""}`;
   } else {
     // Both years and months
-    return `${years} year${years !== 1 ? 's' : ''} ${months} month${months !== 1 ? 's' : ''}`;
+    return `${years} year${years !== 1 ? "s" : ""} ${months} month${months !== 1 ? "s" : ""}`;
   }
 };
 
@@ -56,72 +94,58 @@ export const calculateInvestmentDuration = (
  */
 export const calculateInvestmentValue = (
   investment: UserInvestment,
-  navHistory: NAVData[]
+  navHistory: NAVData[],
 ): {
   units: number;
   currentValue: number;
   investedAmount: number;
 } => {
-  const startDate = moment(investment.startDate, "DD-MM-YYYY");
-
   if (investment.investmentType === "lumpsum") {
     // Check if investment date is today or in future - if so, exclude from calculations
     const investmentDate = moment(investment.startDate, "DD-MM-YYYY");
     const today = moment().startOf("day");
-    
+
     if (investmentDate.isSameOrAfter(today)) {
       // Investment is today or in future, don't include in calculations
       return { units: 0, currentValue: 0, investedAmount: 0 };
     }
-    
-    // Find NAV on or closest to investment start date (investment is in the past)
-    const closestNav = findClosestNav(navHistory, investment.startDate);
-    if (!closestNav) {
-      return { units: 0, currentValue: 0, investedAmount: investment.amount };
-    }
 
-    const units = investment.amount / parseFloat(closestNav.nav);
+    // Find NAV on or closest to investment start date (investment is in the past)
+    const { units, stampDuty } = getUnitsOnDate(
+      navHistory,
+      investment.startDate,
+      investment.amount,
+    );
     const latestNav = getLatestNav(navHistory);
     const currentNav = latestNav ? parseFloat(latestNav.nav) : 0;
     const currentValue = currentNav > 0 ? units * currentNav : 0;
+    const effectiveAmount = investment.amount - stampDuty;
 
     return {
       units,
       currentValue,
-      investedAmount: investment.amount,
+      investedAmount: effectiveAmount,
     };
   } else {
     // SIP calculation - calculate units month by month until end date or today
     let totalUnits = 0;
     let totalInvested = 0;
-    const sipAmount = investment.sipAmount || investment.amount;
-    const sipMonthlyDate = investment.sipMonthlyDate || 1; // Default to 1st of month
-    
-    // Determine end date: if sipEndDate is provided, use it; otherwise use today
-    const endDate = investment.sipEndDate ? moment(investment.sipEndDate, "DD-MM-YYYY") : moment();
 
-    // Start from the first SIP date with the specified monthly date
-    let currentSipDate = startDate.clone().date(sipMonthlyDate);
-    
-    // If the calculated date is before the start date, then start date becomes 1st investment
-    if (currentSipDate.isBefore(startDate)) {
-      currentSipDate = startDate;
-    }
-    
-    while (currentSipDate.isSameOrBefore(endDate)) {
-      const sipDateStr = currentSipDate.format("DD-MM-YYYY");
-      const navAtSipDate = findClosestNav(navHistory, sipDateStr);
+    const sipDates = getSipScheduleDates(investment);
 
-      if (navAtSipDate) {
-        const nav = parseFloat(navAtSipDate.nav);
-        if (nav > 0 && sipAmount > 0) {
-          const unitsThisMonth = sipAmount / nav;
-          totalUnits += unitsThisMonth;
-          totalInvested += sipAmount;
-        }
+    for (const date of sipDates) {
+      const sipDateStr = date.format("DD-MM-YYYY");
+      const sipAmount = getSIPAmountForDate(investment, sipDateStr);
+      const { units: unitsThisMonth, stampDuty } = getUnitsOnDate(
+        navHistory,
+        sipDateStr,
+        investment.sipAmount || investment.amount,
+      );
+
+      if (unitsThisMonth > 0) {
+        totalUnits += unitsThisMonth;
+        totalInvested += sipAmount - stampDuty;
       }
-
-      currentSipDate = currentSipDate.add(1, "month");
     }
 
     const latestNav = getLatestNav(navHistory);
@@ -141,14 +165,14 @@ export const calculateInvestmentValue = (
  */
 export const findClosestNav = (
   navHistory: NAVData[],
-  targetDate: string
+  targetDate: string,
 ): NAVData | null => {
   if (!navHistory || navHistory.length === 0) return null;
 
   const target = moment(targetDate, "DD-MM-YYYY");
   let closest = navHistory[0];
   let minDiff = Math.abs(
-    moment(navHistory[0].date, "DD-MM-YYYY").diff(target, "days")
+    moment(navHistory[0].date, "DD-MM-YYYY").diff(target, "days"),
   );
 
   for (const nav of navHistory) {
@@ -171,7 +195,7 @@ export const findClosestNav = (
  */
 export const calculateXIRR = (
   investments: UserInvestment[],
-  navHistory: NAVData[]
+  navHistory: NAVData[],
 ): number => {
   if (investments.length === 0 || navHistory.length === 0) return 0;
 
@@ -184,33 +208,21 @@ export const calculateXIRR = (
       // Only include lumpsum if it's in the past
       const investmentDate = moment(investment.startDate, "DD-MM-YYYY");
       const today = moment().startOf("day");
-      
+
       if (investmentDate.isBefore(today)) {
         const investDate = investmentDate.toDate();
-        cashFlows.push({ date: investDate, amount: -investment.amount });
+        const effectiveAmount = investment.amount - investment.amount * STAMP_DUTY_RATE;
+        cashFlows.push({ date: investDate, amount: -effectiveAmount });
       }
     } else {
       // For SIP, add monthly outflows from start date until end date (or today if active)
-      const sipMonthlyDate = investment.sipMonthlyDate || 1;
-      const startDate = moment(investment.startDate, "DD-MM-YYYY");
-      const endDate = investment.sipEndDate ? moment(investment.sipEndDate, "DD-MM-YYYY") : moment();
+      const sipDates = getSipScheduleDates(investment);
 
-      // Start from the first SIP date with the specified monthly date
-      let currentSipDate = startDate.clone().date(sipMonthlyDate);
-      
-      // If the calculated date is before the start date, move to next month
-      if (currentSipDate.isBefore(startDate)) {
-        currentSipDate = startDate;
-      }
-
-      while (currentSipDate.isSameOrBefore(endDate)) {
+      for (const date of sipDates) {
         // Get the effective SIP amount for this date (accounts for modifications)
-        const sipDateStr = currentSipDate.format("DD-MM-YYYY");
+        const sipDateStr = date.format("DD-MM-YYYY");
         const effectiveAmount = getSIPAmountForDate(investment, sipDateStr);
-        
-        const sipDate = currentSipDate.toDate();
-        cashFlows.push({ date: sipDate, amount: -effectiveAmount });
-        currentSipDate = currentSipDate.add(1, "month");
+        cashFlows.push({ date: date.toDate(), amount: -effectiveAmount });
       }
     }
   }
@@ -235,7 +247,7 @@ export const calculateXIRR = (
  * Calculate IRR using Newton-Raphson method
  */
 const calculateIRR = (
-  cashFlows: Array<{ date: Date; amount: number }>
+  cashFlows: Array<{ date: Date; amount: number }>,
 ): number => {
   let rate = 0.1; // Initial guess
   const maxIterations = 100;
@@ -271,19 +283,19 @@ const calculateIRR = (
  */
 export const calculateCAGRForInvestments = (
   investments: UserInvestment[],
-  navHistory: NAVData[]
+  navHistory: NAVData[],
 ): number => {
   if (investments.length === 0 || navHistory.length === 0) return 0;
 
   // Get earliest investment date
   const earliestDate = moment.min(
-    investments.map((inv) => moment(inv.startDate, "DD-MM-YYYY"))
+    investments.map((inv) => moment(inv.startDate, "DD-MM-YYYY")),
   );
 
   // Get latest NAV date (most recent date)
   const latestNav = getLatestNav(navHistory);
   if (!latestNav) return 0;
-  
+
   const latestDate = moment(latestNav.date, "DD-MM-YYYY");
   const years = latestDate.diff(earliestDate, "years", true);
 
@@ -308,7 +320,7 @@ export const calculateCAGRForInvestments = (
 
 export function investmentMetricSingleFund(
   navHistory: NAVData[],
-  investmentDataState: UserInvestmentData
+  investmentDataState: UserInvestmentData,
 ): InvestmentMetrics {
   if (navHistory.length === 0) {
     return {
@@ -352,14 +364,20 @@ export function investmentMetricSingleFund(
  * Get the SIP amount effective for a given date
  * Accounts for any modifications made to SIP amount over time
  */
-const getSIPAmountForDate = (investment: UserInvestment, dateStr: string): number => {
+const getSIPAmountForDate = (
+  investment: UserInvestment,
+  dateStr: string,
+): number => {
   const date = moment(dateStr, "DD-MM-YYYY");
   const baseAmount = investment.sipAmount || 0;
-  
-  if (!investment.sipAmountModifications || investment.sipAmountModifications.length === 0) {
-    return baseAmount;
+
+  if (
+    !investment.sipAmountModifications ||
+    investment.sipAmountModifications.length === 0
+  ) {
+    return baseAmount - baseAmount * STAMP_DUTY_RATE;
   }
-  
+
   // Find the latest modification that is effective on or before this date
   let effectiveAmount = baseAmount;
   for (const modification of investment.sipAmountModifications) {
@@ -370,79 +388,78 @@ const getSIPAmountForDate = (investment: UserInvestment, dateStr: string): numbe
       break; // Modifications are sorted, so we can break here
     }
   }
-  
-  return effectiveAmount;
+
+  return effectiveAmount - effectiveAmount * STAMP_DUTY_RATE;
 };
 
 export const generateInvestmentInstallments = (
   investmentData: UserInvestmentData,
-  navHistory: NAVData[]
+  navHistory: NAVData[],
 ): InvestmentInstallment[] => {
   const installments: InvestmentInstallment[] = [];
   let installmentId = 0;
 
   for (const investment of investmentData.investments) {
-    if (investment.investmentType === 'lumpsum') {
+    if (investment.investmentType === "lumpsum") {
       // Check if investment date is today or in future - if so, skip it
       const investmentDate = moment(investment.startDate, "DD-MM-YYYY");
       const today = moment().startOf("day");
-      
+
       if (investmentDate.isBefore(today)) {
         // Investment is in the past, include it
-        const closestNav = findClosestNav(navHistory, investment.startDate);
-        const nav = closestNav ? parseFloat(closestNav.nav) : 0;
-        const units = nav > 0 ? investment.amount / nav : 0;
-        
+
+        const { units, nav, stampDuty } = getUnitsOnDate(
+          navHistory,
+          investment.startDate,
+          investment.amount,
+        );
         installments.push({
           id: `inst-${installmentId++}`,
-          type: 'lumpsum',
+          type: "lumpsum",
           originalStartDate: investment.startDate,
           installmentDate: investment.startDate,
           amount: investment.amount,
           nav,
           units,
+          stampDuty,
         });
       }
       // If investment is today or in future, don't add it to installments
     } else {
-      // SIP installments - one per month
-      const sipMonthlyDate = investment.sipMonthlyDate || 1;
-      const endDate = investment.sipEndDate ? moment(investment.sipEndDate, "DD-MM-YYYY") : moment();
-      
-      const startDate = moment(investment.startDate, "DD-MM-YYYY");
-      let currentSipDate = startDate.clone().date(sipMonthlyDate);
-      
-      // If the calculated date is before the start date, move to next month
-      if (currentSipDate.isBefore(startDate)) {
-        currentSipDate = startDate;
-      }
-      
-      while (currentSipDate.isSameOrBefore(endDate)) {
-        const sipDateStr = currentSipDate.format("DD-MM-YYYY");
+      const sipDates = getSipScheduleDates(investment);
+      for (const date of sipDates) {
+        const sipDateStr = date.format("DD-MM-YYYY");
         // Get the SIP amount effective for this date (accounts for modifications)
         const effectiveSipAmount = getSIPAmountForDate(investment, sipDateStr);
-        const closestNav = findClosestNav(navHistory, sipDateStr);
-        const nav = closestNav ? parseFloat(closestNav.nav) : 0;
-        const units = nav > 0 ? effectiveSipAmount / nav : 0;
-        
+        const { units, nav, stampDuty } = getUnitsOnDate(
+          navHistory,
+          sipDateStr,
+          investment.sipAmount || 0,
+        );
+
         installments.push({
           id: `inst-${installmentId++}`,
-          type: 'sip-installment',
+          type: "sip-installment",
           originalStartDate: investment.startDate,
           installmentDate: sipDateStr,
           amount: effectiveSipAmount,
           nav,
           units,
-          isCancelled: !!investment.sipEndDate && moment(sipDateStr, "DD-MM-YYYY").isAfter(moment(investment.sipEndDate, "DD-MM-YYYY")),
+          stampDuty,
+          isCancelled:
+            !!investment.sipEndDate &&
+            moment(sipDateStr, "DD-MM-YYYY").isAfter(
+              moment(investment.sipEndDate, "DD-MM-YYYY"),
+            ),
         });
-        
-        currentSipDate = currentSipDate.add(1, "month");
       }
     }
   }
 
-  return installments.sort((a, b) => 
-    moment(a.installmentDate, "DD-MM-YYYY").diff(moment(b.installmentDate, "DD-MM-YYYY"))
+  return installments.sort((a, b) =>
+    moment(a.installmentDate, "DD-MM-YYYY").diff(
+      moment(b.installmentDate, "DD-MM-YYYY"),
+    ),
   );
 };
 
@@ -452,14 +469,14 @@ export const generateInvestmentInstallments = (
 export const recalculateAfterEdit = (
   originalInvestment: UserInvestment,
   editDate: string,
-  editType: 'amount-increase' | 'cancel',
-  newAmount?: number
+  editType: "amount-increase" | "cancel",
+  newAmount?: number,
 ): { updated: UserInvestment; adjustment: number } => {
   const updated = { ...originalInvestment };
 
-  if (editType === 'cancel') {
+  if (editType === "cancel") {
     updated.sipEndDate = editDate;
-  } else if (editType === 'amount-increase' && newAmount) {
+  } else if (editType === "amount-increase" && newAmount) {
     // Create a record of the increase from editDate onwards
     updated.sipAmount = newAmount;
     // Note: In practice, you might want to track multiple SIP amounts with different periods
