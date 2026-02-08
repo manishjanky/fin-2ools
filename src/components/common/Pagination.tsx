@@ -2,12 +2,13 @@ import { useState, useEffect } from 'react';
 
 const ITEMS_PER_PAGE = 12;
 
-export default function Pagination({ items, pageChange }: { items: any[]; pageChange: () => void }) {
+export default function Pagination({ items, itemsPerPage, pageChange }: { items: any[]; itemsPerPage?: number; pageChange: (currentPage: number) => void }) {
+    itemsPerPage = itemsPerPage || ITEMS_PER_PAGE;
     const [currentPage, setCurrentPage] = useState(1);
-    const totalPages = Math.ceil(items.length / ITEMS_PER_PAGE);
-    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    const totalPages = Math.ceil(items.length / itemsPerPage);
+    const startIndex = (currentPage - 1) * itemsPerPage;
     useEffect(() => {
-        pageChange();
+        pageChange(currentPage);
     }, [currentPage]);
 
     return (
@@ -18,7 +19,7 @@ export default function Pagination({ items, pageChange }: { items: any[]; pageCh
                     <button
                         onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
                         disabled={currentPage === 1}
-                        className="px-4 py-2 bg-slate-800 text-purple-200 hover:bg-slate-700 disabled:bg-slate-600 disabled:cursor-not-allowed text-white rounded-lg transition"
+                        className="px-4 py-2 bg-slate-800 hover:bg-slate-700 disabled:bg-slate-600 disabled:cursor-not-allowed text-white rounded-lg transition"
                     >
                         Previous
                     </button>
@@ -52,7 +53,7 @@ export default function Pagination({ items, pageChange }: { items: any[]; pageCh
                     <button
                         onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
                         disabled={currentPage === totalPages}
-                        className="px-4 py-2 bg-slate-800 text-purple-200 hover:bg-slate-700 disabled:bg-slate-600 disabled:cursor-not-allowed text-white rounded-lg transition"
+                        className="px-4 py-2 bg-slate-800 hover:bg-slate-700 disabled:bg-slate-600 disabled:cursor-not-allowed text-white rounded-lg transition"
                     >
                         Next
                     </button>

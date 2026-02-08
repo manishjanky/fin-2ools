@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router';
 import { useMutualFundsStore } from '../store/mutualFundsStore';
 import SearchableSelect from '../../../components/common/SearchableSelect';
 import MutualFundCard from './MutualFundCard';
+import Pagination from '../../../components/common/Pagination';
 
 const ITEMS_PER_PAGE = 12;
 
@@ -274,67 +275,8 @@ export default function MutualFundList() {
 
           {/* Pagination */}
           {totalPages > 1 && (
-            <div className="flex justify-center items-center gap-2 mt-8">
-              <button
-                onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-                disabled={currentPage === 1}
-                className="px-4 py-2 bg-slate-800 text-purple-200 hover:bg-slate-700 disabled:bg-slate-600 disabled:cursor-not-allowed rounded-lg transition"
-              >
-                Previous
-              </button>
-
-              <div className="flex gap-2">
-                {Array.from({ length: totalPages }, (_, i) => i + 1)
-                  .filter(
-                    (page) =>
-                      page === 1 ||
-                      page === totalPages ||
-                      (page >= currentPage - 1 && page <= currentPage + 1)
-                  )
-                  .map((page, index, array) => (
-                    <div key={page}>
-                      {index > 0 && array[index - 1] !== page - 1 && (
-                        <span className="px-2 text-purple-300">...</span>
-                      )}
-                      <button
-                        onClick={() => setCurrentPage(page)}
-                        className={`px-4 py-2 rounded-lg transition ${currentPage === page
-                          ? 'bg-purple-600 text-white'
-                          : 'bg-slate-800 text-purple-200 hover:bg-slate-700'
-                          }`}
-                      >
-                        {page}
-                      </button>
-                    </div>
-                  ))}
-              </div>
-
-              <button
-                onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
-                disabled={currentPage === totalPages}
-                className="px-4 py-2 bg-slate-800 text-purple-200 hover:bg-slate-700 disabled:bg-slate-600 disabled:cursor-not-allowed rounded-lg transition"
-              >
-                Next
-              </button>
-            </div>
+            <Pagination itemsPerPage={12} pageChange={(page) => setCurrentPage(page)} items={categoryFilteredSchemes} />
           )}
-
-          {/* Results Summary */}
-          <div className="text-center mt-6 text-purple-200 text-sm">
-            <p>
-              Showing {startIndex + 1} to{' '}
-              {Math.min(startIndex + ITEMS_PER_PAGE, categoryFilteredSchemes.length)} of{' '}
-              {categoryFilteredSchemes.length} mutual funds
-              {(selectedCategory !== 'all' || selectedFundHouse !== 'all') && (
-                <>
-                  {' - '}
-                  {selectedCategory !== 'all' && selectedCategory}
-                  {selectedCategory !== 'all' && selectedFundHouse !== 'all' && ' | '}
-                  {selectedFundHouse !== 'all' && selectedFundHouse}
-                </>
-              )}
-            </p>
-          </div>
         </>
       )}
     </div>
