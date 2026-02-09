@@ -1,6 +1,9 @@
 
+import { lazy, Suspense } from 'react';
 import Header from '../../components/common/Header';
-import MutualFundList from './components/MutualFundList';
+import Loader from '../../components/common/Loader';
+const MutualFundList = lazy(() => import('./components/MutualFundList'));
+
 
 export default function MutualFunds() {
   return (
@@ -22,7 +25,9 @@ export default function MutualFunds() {
           </p>
         </section>
         <section>
-          <MutualFundList />
+          <Suspense fallback={<Loader message='Loading Schemes...' />}>
+            <MutualFundList />
+          </Suspense>
         </section>
       </main>
     </div>
