@@ -238,7 +238,7 @@ export default function MyFunds() {
                 fallback={
                   <div className="rounded-lg p-6 bg-bg-secondary border border-border-main">
                     <div className="h-96 flex items-center justify-center">
-                      <Loader message="Loading portfolio performance..." fullHeight={false} />
+                      <Loader message="Evaluating portfolio..." fullHeight={false} />
                     </div>
                   </div>
                 }

@@ -418,7 +418,7 @@ export const generateInvestmentInstallments = (
           type: "lumpsum",
           originalStartDate: investment.startDate,
           installmentDate: investment.startDate,
-          amount: investment.amount,
+          amount: investment.amount - stampDuty,
           nav,
           units,
           stampDuty,
