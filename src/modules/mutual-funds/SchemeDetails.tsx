@@ -1,13 +1,15 @@
-import { Suspense, useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import { useParams } from 'react-router';
 import type { MutualFundScheme, SchemeHistoryResponse } from './types/mutual-funds';
 import { useMutualFundsStore } from './store/mutualFundsStore';
 import Header from '../../components/common/Header';
-import SchemeReturns from './components/SchemeReturns';
 import Accordion from '../../components/common/Accordion';
 import FundHeader from './components/FundHeader';
-import SchemeInformation from './components/SchemeInformation';
-import SimilarFunds from './components/SimilarFunds';
+import Loader from '../../components/common/Loader';
+
+const SchemeReturns = lazy(() => import('./components/SchemeReturns'));
+const SchemeInformation = lazy(() => import('./components/SchemeInformation'));
+const SimilarFunds = lazy(() => import('./components/SimilarFunds'));
 
 export default function SchemeDetails() {
     const { schemeCode } = useParams<{ schemeCode: string }>();
@@ -104,7 +106,7 @@ export default function SchemeDetails() {
                         >
                             NAV History
                         </h2>
-                        <Suspense>
+                        <Suspense fallback={<Loader />}>
                             <SchemeReturns navData={history.data} currentNav={currentNav} />
                         </Suspense>
                     </section>
@@ -112,14 +114,18 @@ export default function SchemeDetails() {
                 {
                     scheme.details && (
                         <Accordion title="Scheme Information" isOpen={true} >
-                            <SchemeInformation details={scheme.details} />
+                            <Suspense fallback={<Loader />}>
+                                <SchemeInformation details={scheme.details} />
+                            </Suspense>
                         </Accordion>
                     )
                 }
                 {
                     scheme.details && scheme.details.comparison?.length > 0 && (
                         <Accordion title="Similar Funds" isOpen={true} >
-                            <SimilarFunds funds={scheme.details.comparison} />
+                            <Suspense fallback={<Loader />}>
+                                <SimilarFunds funds={scheme.details.comparison} />
+                            </Suspense>
                         </Accordion>
                     )
                 }

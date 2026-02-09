@@ -1,4 +1,4 @@
-import { Suspense, useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router';
 import type {
   MutualFundScheme,
@@ -15,12 +15,13 @@ import {
 import { useMutualFundsStore } from '../store/mutualFundsStore';
 import { useInvestmentStore } from '../store';
 import Header from '../../../components/common/Header';
-import FundInvestmentSummary from './FundInvestmentSummary';
-import AddInvestmentModal from './AddInvestmentModal';
+import FundHeader from './FundHeader';
 import Accordion from '../../../components/common/Accordion';
 import Loader from '../../../components/common/Loader';
-import FundInvestmentHistory from './FundInvestmentHistory';
-import FundHeader from './FundHeader';
+
+const FundInvestmentSummary = lazy(() => import('./FundInvestmentSummary'));
+const AddInvestmentModal = lazy(() => import('./AddInvestmentModal'));
+const FundInvestmentHistory = lazy(() => import('./FundInvestmentHistory'));
 
 export default function FundInvestmentDetails() {
   const { schemeCode } = useParams<{ schemeCode: string }>();
@@ -162,16 +163,17 @@ export default function FundInvestmentDetails() {
 
         {/* Investment Summary */}
         <section className="mb-6">
-          <Suspense>
-            <Accordion title="Investment Summary" isOpen={true}>
+          <Accordion title="Investment Summary" isOpen={true}>
+            <Suspense fallback={<Loader />}>
               <FundInvestmentSummary
                 metrics={metrics}
                 currentNav={currentNav}
                 investmentData={investmentData}
                 navHistory={navHistory}
               />
-            </Accordion>
-          </Suspense>
+            </Suspense>
+
+          </Accordion>
         </section>
 
         {/* Action Buttons */}
@@ -198,7 +200,7 @@ export default function FundInvestmentDetails() {
             </button>
           )}
         </section>
-        <Suspense>
+        <Suspense fallback={<Loader />}>
           <FundInvestmentHistory installments={installments} />
         </Suspense>
       </main>

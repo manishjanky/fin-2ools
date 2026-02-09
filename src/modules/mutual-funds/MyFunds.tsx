@@ -3,14 +3,14 @@ import Header from '../../components/common/Header';
 import { useInvestmentStore } from './store';
 import { useMutualFundsStore } from './store/mutualFundsStore';
 import type { MutualFundScheme, NAVData, PortfolioReturnMetrics, UserInvestmentData } from './types/mutual-funds';
-import MyFundsCard from './components/MyFundsCard';
-import MyFundsSummary from './components/MyFundsSummary';
 import Accordion from '../../components/common/Accordion';
 import Loader from '../../components/common/Loader';
 import { useNavigate } from 'react-router';
 import { calculateCAGRForInvestments, calculateInvestmentValue, calculateXIRR } from './utils/investmentCalculations';
 import moment from 'moment';
 
+const MyFundsCard = lazy(() => import('./components/MyFundsCard'));
+const MyFundsSummary = lazy(() => import('./components/MyFundsSummary'));
 const PortfolioPerformanceCurve = lazy(
   () => import('./components/PortfolioPerformanceCurve')
 );

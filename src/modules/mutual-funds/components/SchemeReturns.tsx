@@ -1,13 +1,19 @@
-import { useState, useMemo, Suspense } from 'react';
+import { useState, useMemo, Suspense, lazy } from 'react';
 import moment from 'moment';
 import type { NAVData, ReturnsMetrics } from '../types/mutual-funds';
 import Accordion from '../../../components/common/Accordion';
-import ReturnsSummary from './ReturnsSummary';
-import NAVChart from './NAVChart';
-import LineChart from './NAVLineChart';
-import NavStatisticsDisplay from './NavStatisticsDisplay';
 import { calculateSchemeReturns } from '../utils/metrics-calculations';
 import { TIMEFRAMES } from '../utils/constants';
+import Loader from '../../../components/common/Loader';
+
+const ReturnsSummary = lazy(() => import('./ReturnsSummary'));
+const NavStatisticsDisplay = lazy(() => import('./NavStatisticsDisplay'));
+const LineChart = lazy(() => import('./NAVLineChart'));
+const NAVChart = lazy(() => import('./NAVChart'));
+
+
+
+
 
 interface ReturnsCalculatorProps {
     navData: NAVData[];
@@ -75,7 +81,7 @@ export default function SchemeReturns({ navData, currentNav }: ReturnsCalculator
 
             {/* Chart Statistics Display */}
             {selectedMetric.isAvailable && filteredNavData.length > 0 && (
-                <Suspense>
+                <Suspense fallback={<Loader />}>
                     <NavStatisticsDisplay navData={filteredNavData} />
                 </Suspense>
             )}
@@ -110,7 +116,7 @@ export default function SchemeReturns({ navData, currentNav }: ReturnsCalculator
 
                     {/* NAV Chart */}
                     <div>
-                        <Suspense>
+                        <Suspense fallback={<Loader />}>
                             {chartType === 'histogram' ? (
                                 <NAVChart navData={filteredNavData} timeframeLabel={selectedMetric.timeframeLabel} />
                             ) : (
@@ -123,11 +129,12 @@ export default function SchemeReturns({ navData, currentNav }: ReturnsCalculator
 
 
             {selectedMetric.isAvailable && (
-                <Suspense>
-                    <Accordion title="Returns Summary" isOpen={true}>
+                <Accordion title="Returns Summary" isOpen={true}>
+                    <Suspense fallback={<Loader />}>
                         <ReturnsSummary selectedMetric={selectedMetric} />
-                    </Accordion>
-                </Suspense>
+                    </Suspense>
+
+                </Accordion>
 
             )}
 
