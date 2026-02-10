@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { UserInvestmentData } from '../types/mutual-funds';
+import type { UserInvestment, UserInvestmentData } from '../types/mutual-funds';
 import { localStorageService } from '../utils/userMutualFundsService';
 
 interface InvestmentStore {
@@ -10,6 +10,7 @@ interface InvestmentStore {
   addInvestment: (schemeCode: number, investment: any) => void;
   removeInvestment: (schemeCode: number, investmentIndex: number) => void;
   getSchemeInvestments: (schemeCode: number) => UserInvestmentData;
+  updateInvestment:(schemeCode: number, investment: UserInvestment) => void;
 }
 
 export const useInvestmentStore = create<InvestmentStore>((set, get) => ({
@@ -41,4 +42,8 @@ export const useInvestmentStore = create<InvestmentStore>((set, get) => ({
   getSchemeInvestments: (schemeCode: number): UserInvestmentData => {
     return localStorageService.getSchemeInvestments(schemeCode)||{ schemeCode, investments: []};
   },
+
+  updateInvestment:(schemeCode: number, investment: UserInvestment) => {
+    return localStorageService.updateInvestment(schemeCode, investment);
+  }
 }));

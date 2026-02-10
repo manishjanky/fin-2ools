@@ -67,6 +67,7 @@ export interface SIPAmountModification {
 
 // New types for user investments
 export interface UserInvestment {
+  id: string,
   schemeCode: number;
   investmentType: "lumpsum" | "sip";
   startDate: string;

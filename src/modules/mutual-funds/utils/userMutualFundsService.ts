@@ -1,6 +1,6 @@
-import type { UserInvestmentData } from '../types/mutual-funds';
+import type { UserInvestment, UserInvestmentData } from "../types/mutual-funds";
 
-const STORAGE_KEY = 'fin-tools-my-funds';
+const STORAGE_KEY = "fin-tools-my-funds";
 
 export const localStorageService = {
   // Get all user investments
@@ -9,7 +9,7 @@ export const localStorageService = {
       const data = localStorage.getItem(STORAGE_KEY);
       return data ? JSON.parse(data) : [];
     } catch (error) {
-      console.error('Error reading from localStorage:', error);
+      console.error("Error reading from localStorage:", error);
       return [];
     }
   },
@@ -21,9 +21,11 @@ export const localStorageService = {
   },
 
   // Add investment to a scheme
-  addInvestment(schemeCode: number, investment: any): void {
+  addInvestment(schemeCode: number, investment: UserInvestment): void {
     const investments = this.getUserInvestments();
-    const existingScheme = investments.find((item) => item.schemeCode === schemeCode);
+    const existingScheme = investments.find(
+      (item) => item.schemeCode === schemeCode,
+    );
 
     if (existingScheme) {
       existingScheme.investments.push(investment);
@@ -37,10 +39,35 @@ export const localStorageService = {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(investments));
   },
 
+  updateInvestment(schemeCode: number, investment: UserInvestment) {
+    const allAnvestments = this.getUserInvestments();
+    const schemeInvestments = allAnvestments.find(
+      (inv) => inv.schemeCode === schemeCode,
+    );
+    if (schemeInvestments) {
+      const invIndex = allAnvestments.indexOf(schemeInvestments);
+      schemeInvestments.investments = schemeInvestments.investments.map(
+        (inv) => {
+          if (inv.id === investment.id) {
+            return {
+              ...investment,
+            };
+          }
+          return inv;
+        },
+      );
+
+      allAnvestments[invIndex] = { ...schemeInvestments };
+    }
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(allAnvestments));
+  },
+
   // Remove specific investment
   removeInvestment(schemeCode: number, investmentIndex: number): void {
     const investments = this.getUserInvestments();
-    const schemeIndex = investments.findIndex((item) => item.schemeCode === schemeCode);
+    const schemeIndex = investments.findIndex(
+      (item) => item.schemeCode === schemeCode,
+    );
 
     if (schemeIndex !== -1) {
       investments[schemeIndex].investments.splice(investmentIndex, 1);

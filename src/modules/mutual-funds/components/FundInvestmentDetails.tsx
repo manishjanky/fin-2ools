@@ -27,7 +27,7 @@ const FundInvestmentHistory = lazy(() => import('./FundInvestmentHistory'));
 export default function FundInvestmentDetails() {
   const { schemeCode } = useParams<{ schemeCode: string }>();
   const navigate = useNavigate();
-  const { getSchemeInvestments, addInvestment } = useInvestmentStore();
+  const { getSchemeInvestments, addInvestment, updateInvestment } = useInvestmentStore();
   const getOrFetchSchemeHistory = useMutualFundsStore(
     (state) => state.getOrFetchSchemeHistory
   );
@@ -105,7 +105,12 @@ export default function FundInvestmentDetails() {
   const handleInvestmentSubmit = (investment: UserInvestment) => {
     if (scheme) {
       // Update investment in store
-      addInvestment(scheme.schemeCode, investment);
+      if (modalMode === 'edit' && editingSIP) {
+        updateInvestment(scheme.schemeCode, investment);
+      } else {
+        addInvestment(scheme.schemeCode, investment);
+
+      }
 
       // Refresh investment data
       const updated = getSchemeInvestments(scheme.schemeCode);
@@ -195,7 +200,7 @@ export default function FundInvestmentDetails() {
               </Suspense>) : <Loader />
           }
         </section>
-        
+
         {/* Action Buttons */}
         <section className="mb-6 flex gap-3 justify-end">
           <button

@@ -55,6 +55,7 @@ export default function AddInvestmentModal({
   const [sipEndDate, setSipEndDate] = useState('');
   const [sipAmountChangeDate, setSipAmountChangeDate] = useState(moment().format('YYYY-MM-DD'));
   const [isChangingAmount, setIsChangingAmount] = useState(false);
+  const [oldSipAmount, setOldSipAmount] = useState('')
 
   // Initialize form when editing
   useEffect(() => {
@@ -70,10 +71,16 @@ export default function AddInvestmentModal({
       setSipEndDate(editingInvestment.sipEndDate ? formatDateForInput(editingInvestment.sipEndDate) : '');
       setSipAmountChangeDate(moment().format('YYYY-MM-DD'));
       setIsChangingAmount(false);
+      setOldSipAmount(editingInvestment.sipAmount?.toString() || '');
     } else {
       resetForm();
     }
   }, [isOpen, mode, editingInvestment]);
+
+  const handleSipAmountChange = (value: string) => {
+    setSipAmount(value);
+    setIsChangingAmount(isEditMode && value !== oldSipAmount);
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -95,7 +102,8 @@ export default function AddInvestmentModal({
       return;
     }
 
-    let investment: UserInvestment = {
+    let investment: UserInvestment = isEditMode && editingInvestment ? { ...editingInvestment } : {
+      id: `${new Date().getTime()}-${schemeCode}`,
       schemeCode,
       investmentType,
       startDate: formatDateForStorage(startDate),
@@ -163,6 +171,7 @@ export default function AddInvestmentModal({
     setSipEndDate('');
     setSipAmountChangeDate(moment().format('YYYY-MM-DD'));
     setIsChangingAmount(false);
+    setOldSipAmount('');
   };
 
   if (!isOpen) return null;
@@ -273,7 +282,7 @@ export default function AddInvestmentModal({
                 <input
                   type="number"
                   value={sipAmount}
-                  onChange={(e) => setSipAmount(e.target.value)}
+                  onChange={(e) => handleSipAmountChange(e.target.value)}
                   placeholder="Enter monthly amount"
                   min="0"
                   step="0.01"
