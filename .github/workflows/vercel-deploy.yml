@@ -10,6 +10,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    if: ${{ github.event.pull_request.merged == false }}
     steps:
       # 1️⃣ Checkout the repository
       - name: Checkout repository
@@ -31,25 +32,34 @@ jobs:
         run: npm run build # adjust if you use a different script
       
       - name: Upload build artifact
-        if: ${{ github.event.pull_request.merged == true }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: fin2ools-build
-          path: dist/
+        # if: ${{ github.event.pull_request.merged == true }}
+        # uses: actions/upload-artifact@v4
+        # with:
+        #   name: fin2ools-build
+        #   path: dist/
   deploy:
     runs-on: ubuntu-latest
     needs: [build]
+    if: ${{ github.event.pull_request.merged == true }}
     steps:
-      - name: Download build artifact
-        uses: actions/download-artifact@v4
-        if: ${{ github.event.pull_request.merged == true }}
+      # 2️⃣ Set up Node (adjust version as needed)
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
         with:
-          name: fin2ools-build
-          path: dist/
+          node-version: "24" # or whatever version your project requires
+          cache: "npm" # caches npm dependencies for faster runs
+
+      - name: install dependencies
+        run: npm install
+
+      # - name: Download build artifact
+      #   uses: actions/download-artifact@v4
+      #   with:
+      #     name: fin2ools-build
+      #     path: dist/
 
       # 5️⃣ Deploy to Vercel
       - name: Deploy to Vercel
-        if: ${{ github.event.pull_request.merged == true }}
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN_FIN2OOLS }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
