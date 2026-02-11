@@ -16,7 +16,7 @@ export default defineConfig({
       manifest: {
         description:
           "This application provides you with some financial tools that can help you with your day to day financial needs in a secure manner. For e.g. tracking your investments in mutual funds, calculating returns on FD, RD, PPF, etc.",
-        theme_color: "#6366F1",
+        theme_color: "#111827",
         background_color: "#ffffff",
         display: "standalone",
         name: "fin2ools",
