@@ -28,7 +28,7 @@ export default function FYSummaryTable({ data }: FYSummaryTableProps) {
         <table className="w-full">
           <thead>
             <tr
-              className="bg-bg-primary border border-e-border-light"
+              className="bg-bg-primary"
             >
               <th
                 className="px-6 py-4 text-left font-semibold text-text-secondary"

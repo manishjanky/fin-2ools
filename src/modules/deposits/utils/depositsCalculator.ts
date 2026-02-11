@@ -137,27 +137,91 @@ function calculateCompoundedAmount(
 }
 
 export function calculateRDReturns(rdData: RDInput): DepositSummary {
+  const startDate = moment(rdData.startDate, "YYYY-MM-DD", true);
+  if (!startDate.isValid()) {
+    throw new Error("Invalid start date format");
+  }
+
   const monthlyInstallment = rdData.monthlyInstallment;
   const annualInterestRate = rdData.rate / 100; // percent
-  const tenureYears = rdData.tenureYears + rdData.tenureMonths / 12;
+  const tenureMonths = rdData.tenureYears * 12 + rdData.tenureMonths;
 
   // Convert interest rate to monthly
   const ratePerMonth = annualInterestRate / 12;
-  const totalMonths = tenureYears * 12;
-  const compoundFactor = Math.pow(1 + ratePerMonth, totalMonths);
 
+  // Calculate end date
+  const endDate = startDate.clone().add(tenureMonths, "months");
+
+  // Calculate total principal and maturity amount
+  const compoundFactor = Math.pow(1 + ratePerMonth, tenureMonths);
   const maturityAmount =
     monthlyInstallment * ((compoundFactor - 1) / ratePerMonth);
-
-  // Calculate total principal invested
-  const principal = monthlyInstallment * totalMonths;
-
-  // Calculate interest earned
+  const principal = monthlyInstallment * tenureMonths;
   const totalInterestEarned = maturityAmount - principal;
+
+  // Helper function to calculate balance after n months
+  const calculateBalance = (months: number): number => {
+    if (months <= 0) return 0;
+    return monthlyInstallment * ((Math.pow(1 + ratePerMonth, months) - 1) / ratePerMonth);
+  };
+
+  // Calculate FY-wise breakdown
+  const startFYYear = getIndianFYYear(startDate);
+  const endFYYear = getIndianFYYear(endDate);
+
+  const fyDataList: FYData[] = [];
+
+  // Process each FY
+  for (let fyYear = startFYYear; fyYear <= endFYYear; fyYear++) {
+    const fyYearLabel =
+      fyYear > 2000
+        ? `FY ${fyYear}-${String(fyYear + 1).slice(-2)}`
+        : `FY ${fyYear}`;
+
+    const fyStart = getIndianFYStartDate(fyYear);
+    const fyEnd = getIndianFYEndDate(fyYear);
+
+    // Count installments in this FY
+    let fyContribution = 0;
+
+    for (let month = 0; month < tenureMonths; month++) {
+      const installmentDate = startDate.clone().add(month, "months");
+      if (installmentDate.isBetween(fyStart, fyEnd, null, "[]")) {
+        fyContribution += monthlyInstallment;
+      }
+    }
+
+    // Skip if no contributions in this FY
+    if (fyContribution === 0) continue;
+
+    // Calculate opening balance (balance at start of FY)
+    // This is the balance after all installments made before this FY
+    const monthsBeforeFYStart = Math.floor(startDate.diff(fyStart, "months", true));
+    const monthsUpToFYStart = Math.max(0, -monthsBeforeFYStart);
+    const openingBalance = calculateBalance(monthsUpToFYStart);
+
+    // Calculate closing balance (balance at end of this FY)
+    // Count total months elapsed by end of FY (from start date)
+    const monthsUpToFYEnd = Math.floor(fyEnd.diff(startDate, "months", true));
+    const closingMonthCount = Math.min(monthsUpToFYEnd + 1, tenureMonths);
+    const closingBalance = calculateBalance(closingMonthCount);
+
+    // Calculate interest for this FY
+    const interestEarned = closingBalance - openingBalance - fyContribution;
+
+    fyDataList.push({
+      fyYear: fyYearLabel,
+      startBalance: openingBalance,
+      contribution: fyContribution,
+      endBalance: closingBalance,
+      interestEarned: Math.max(0, interestEarned),
+    });
+  }
+
   return {
     maturityAmount,
     principal,
-    fyData: [],
+    fyData: fyDataList,
     totalInterestEarned,
   };
 }
